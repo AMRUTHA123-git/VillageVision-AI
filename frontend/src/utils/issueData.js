@@ -384,6 +384,136 @@ export function adoptIssue(issueId, adopterUser = {}) {
 }
 
 // ============================================================
+// ADD / UPDATE AFTER-SOLUTION PHOTO TO ADOPTED ISSUE
+// ============================================================
+export function addAfterPhoto(issueId, afterPhoto, { solutionDescription = '', updatedByUser = {} } = {}) {
+  const issues = getStoredIssues();
+  const target = issues.find(item => item.id === issueId);
+
+  if (!target) {
+    return {
+      success: false,
+      error: 'Issue not found.'
+    };
+  }
+
+  if (!afterPhoto || typeof afterPhoto !== 'string' || !afterPhoto.trim()) {
+    return {
+      success: false,
+      error: 'Please select or upload a valid after-solution photo.'
+    };
+  }
+
+  const uploaderName = (updatedByUser?.fullName || updatedByUser?.name || target.adoptedBy || 'NGO / Volunteer').trim();
+  const uploaderRole = updatedByUser?.role || target.adoptedByRole || 'NGO / Volunteer';
+
+  let updatedIssue = null;
+  const updated = issues.map(item => {
+    if (item.id === issueId) {
+      updatedIssue = {
+        ...item,
+        adopted: true,
+        adoptedBy: item.adoptedBy || uploaderName,
+        adoptedByRole: item.adoptedByRole || uploaderRole,
+        beforePhoto: item.beforePhoto || item.photo || null,
+        afterPhoto: afterPhoto.trim(),
+        solutionDescription: (solutionDescription || item.solutionDescription || '').trim()
+      };
+      return updatedIssue;
+    }
+    return item;
+  });
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to save after-photo to localStorage:', e);
+  }
+
+  notifyIssueUpdates(updated);
+
+  return {
+    success: true,
+    issue: updatedIssue,
+    issues: updated
+  };
+}
+
+// ============================================================
+// RESOLVE ISSUE WITH MANDATORY AFTER-SOLUTION PHOTO
+// ============================================================
+export function resolveIssue(issueId, { solutionPhoto, solutionDescription = '', resolvedByUser = {} } = {}) {
+  const issues = getStoredIssues();
+  const target = issues.find(item => item.id === issueId);
+
+  if (!target) {
+    return {
+      success: false,
+      error: 'Issue not found.'
+    };
+  }
+
+  const effectivePhoto = (solutionPhoto && typeof solutionPhoto === 'string' && solutionPhoto.trim()) 
+    ? solutionPhoto.trim() 
+    : (target.afterPhoto || '').trim();
+
+  // Mandatory after-solution photo check
+  if (!effectivePhoto) {
+    return {
+      success: false,
+      error: 'An after-solution photo is required before marking this issue as Resolved.'
+    };
+  }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  const solverName = (resolvedByUser?.fullName || resolvedByUser?.name || target.adoptedBy || 'NGO / Volunteer Organization').trim();
+  const solverRole = resolvedByUser?.role || target.adoptedByRole || 'NGO / Volunteer';
+  const solverId = resolvedByUser?.id || resolvedByUser?.email || target.adoptedByUserId || '';
+
+  let updatedIssue = null;
+  const updated = issues.map(item => {
+    if (item.id === issueId) {
+      updatedIssue = {
+        ...item,
+        adopted: true,
+        adoptedBy: item.adoptedBy || solverName,
+        adoptedByRole: item.adoptedByRole || solverRole,
+        status: 'Resolved',
+        resolved: true,
+        resolvedBy: solverName,
+        resolvedByUserId: solverId,
+        resolvedByRole: solverRole,
+        resolvedDate: dateStr,
+        resolvedTime: timeStr,
+        resolvedAt: `${dateStr}, ${timeStr}`,
+        beforePhoto: item.beforePhoto || item.photo || null,
+        afterPhoto: effectivePhoto,
+        solutionDescription: (solutionDescription || item.solutionDescription || '').trim() || 'Community problem successfully addressed and verified by NGO / Volunteer intervention.'
+      };
+      return updatedIssue;
+    }
+    return item;
+  });
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to save resolved issue to localStorage:', e);
+  }
+
+  notifyIssueUpdates(updated);
+
+  return {
+    success: true,
+    issue: updatedIssue,
+    issues: updated
+  };
+}
+
+// ============================================================
 // UPDATE ISSUE STATUS
 // ============================================================
 export function updateIssueStatus(id, newStatus, metadata = {}) {

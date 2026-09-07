@@ -24,13 +24,17 @@ import {
   Tag,
   Target,
   Check,
-  X
+  X,
+  Camera,
+  XCircle
 } from 'lucide-react';
 import { 
   getStoredIssues, 
   filterIssues, 
   VISAKHAPATNAM_VILLAGES, 
   adoptIssue, 
+  addAfterPhoto,
+  resolveIssue,
   subscribeToIssueUpdates 
 } from '../utils/issueData';
 
@@ -46,6 +50,13 @@ export default function CommunityIssuesPage({ user }) {
   const [confirmingAdoptIssue, setConfirmingAdoptIssue] = useState(null);
   const [adoptionSuccessMessage, setAdoptionSuccessMessage] = useState('');
   const [adoptionErrorMessage, setAdoptionErrorMessage] = useState('');
+
+  // Resolution Modal & State
+  const [resolvingIssue, setResolvingIssue] = useState(null);
+  const [solutionPhoto, setSolutionPhoto] = useState(null);
+  const [solutionDescription, setSolutionDescription] = useState('');
+  const [resolutionError, setResolutionError] = useState('');
+  const [isSubmittingResolution, setIsSubmittingResolution] = useState(false);
 
   const isNGOUser = user?.role === 'NGO' || user?.role === 'NGO / Volunteer' || user?.role === 'Volunteer';
 
@@ -167,6 +178,98 @@ export default function CommunityIssuesPage({ user }) {
     }
   };
 
+  // Issue Resolution & After-Photo Handlers
+  const handleOpenResolveModal = (issue, e) => {
+    if (e) e.stopPropagation();
+    setResolvingIssue(issue);
+    setSolutionPhoto(issue.afterPhoto || null);
+    setSolutionDescription(issue.solutionDescription || '');
+    setResolutionError('');
+  };
+
+  const handleSolutionPhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSolutionPhoto(reader.result);
+        setResolutionError('');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveAfterPhotoOnly = (e) => {
+    if (e) e.preventDefault();
+    setResolutionError('');
+
+    if (!resolvingIssue) return;
+
+    if (!solutionPhoto) {
+      setResolutionError('Please upload an after-solution photo first.');
+      return;
+    }
+
+    setIsSubmittingResolution(true);
+    const res = addAfterPhoto(resolvingIssue.id, solutionPhoto, {
+      solutionDescription,
+      updatedByUser: user
+    });
+
+    if (!res.success) {
+      setIsSubmittingResolution(false);
+      setResolutionError(res.error || 'Failed to save after-photo.');
+      return;
+    }
+
+    setIsSubmittingResolution(false);
+    setResolvingIssue(null);
+    if (selectedIssue && selectedIssue.id === resolvingIssue.id) {
+      setSelectedIssue(res.issue);
+    }
+    setAdoptionSuccessMessage(`✓ After-solution photo successfully saved to issue ${resolvingIssue.id}! You can now mark it as Resolved.`);
+    setTimeout(() => {
+      setAdoptionSuccessMessage('');
+    }, 6000);
+  };
+
+  const handleSubmitResolution = (e) => {
+    e.preventDefault();
+    setResolutionError('');
+
+    if (!resolvingIssue) return;
+
+    const photoToUse = solutionPhoto || resolvingIssue.afterPhoto;
+    if (!photoToUse) {
+      setResolutionError('An after-solution photo is mandatory before marking this issue as Resolved.');
+      return;
+    }
+
+    setIsSubmittingResolution(true);
+
+    const res = resolveIssue(resolvingIssue.id, {
+      solutionPhoto: photoToUse,
+      solutionDescription,
+      resolvedByUser: user
+    });
+
+    if (!res.success) {
+      setIsSubmittingResolution(false);
+      setResolutionError(res.error || 'Failed to resolve issue.');
+      return;
+    }
+
+    setIsSubmittingResolution(false);
+    setResolvingIssue(null);
+    if (selectedIssue && selectedIssue.id === resolvingIssue.id) {
+      setSelectedIssue(res.issue);
+    }
+    setAdoptionSuccessMessage(`✓ Issue ${resolvingIssue.id} marked as Resolved with after-solution photo! Solved by ${user?.fullName || 'NGO / Volunteer'}.`);
+    setTimeout(() => {
+      setAdoptionSuccessMessage('');
+    }, 6000);
+  };
+
   // Compute filtered issues
   const filteredIssues = filterIssues(issues, {
     village: selectedVillage === 'All Villages / Areas' ? '' : selectedVillage,
@@ -249,11 +352,67 @@ export default function CommunityIssuesPage({ user }) {
             </div>
           </div>
 
-          {/* ADOPTION BANNER / ACTION */}
-          {selectedIssue.adopted ? (
+          {/* RESOLUTION DETAILS / ADOPTION BANNER / ACTION */}
+          {selectedIssue.status === 'Resolved' || selectedIssue.resolved ? (
+            <div style={{ background: '#f0fdf4', border: '2px solid #86efac', borderRadius: '16px', padding: '1.5rem', marginBottom: '1.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem', borderBottom: '1px solid #bbf7d0', paddingBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontWeight: 800, fontSize: '1.15rem' }}>
+                  <CheckCircle2 size={24} /> ✓ Solved & Resolved Community Problem
+                </div>
+                <span className="status-pill resolved" style={{ fontSize: '0.85rem' }}>
+                  Status: Resolved
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', color: '#166534', fontSize: '0.92rem', marginBottom: '1rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.8rem', color: '#15803d', display: 'block', fontWeight: 700 }}>SOLVED BY</span>
+                  <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>{selectedIssue.resolvedBy}</strong>
+                  <span style={{ fontSize: '0.78rem', color: '#059669', display: 'block' }}>({selectedIssue.resolvedByRole || 'NGO / Volunteer'})</span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.8rem', color: '#15803d', display: 'block', fontWeight: 700 }}>SOLVED DATE</span>
+                  <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{selectedIssue.resolvedDate}</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.8rem', color: '#15803d', display: 'block', fontWeight: 700 }}>SOLVED TIME</span>
+                  <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{selectedIssue.resolvedTime}</strong>
+                </div>
+              </div>
+
+              {selectedIssue.solutionDescription && (
+                <div style={{ background: '#ffffff', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '0.85rem 1.1rem', marginTop: '0.75rem' }}>
+                  <strong style={{ color: '#166534', fontSize: '0.85rem', display: 'block', marginBottom: '0.2rem' }}>📝 Solution Description & Work Done:</strong>
+                  <p style={{ margin: 0, color: '#334155', fontSize: '0.92rem', lineHeight: '1.5' }}>
+                    {selectedIssue.solutionDescription}
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : selectedIssue.adopted ? (
             <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '14px', padding: '1.25rem', marginBottom: '1.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#16a34a', fontWeight: 800, fontSize: '1.05rem', marginBottom: '0.5rem' }}>
-                <CheckCircle2 size={20} /> ✓ Adopted Community Issue
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#16a34a', fontWeight: 800, fontSize: '1.05rem' }}>
+                  <CheckCircle2 size={20} /> ✓ Adopted Community Issue
+                </div>
+                {isNGOUser && (
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={(e) => handleOpenResolveModal(selectedIssue, e)}
+                      style={{ background: '#2563eb', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <Camera size={16} /> {selectedIssue.afterPhoto ? 'Update After Photo' : 'Add After Photo'}
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={(e) => handleOpenResolveModal(selectedIssue, e)}
+                      style={{ background: '#059669', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <CheckCircle2 size={16} /> Mark as Resolved
+                    </button>
+                  </div>
+                )}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', color: '#166534', fontSize: '0.92rem' }}>
                 <div>Adopted by: <strong>{selectedIssue.adoptedBy}</strong></div>
@@ -284,24 +443,79 @@ export default function CommunityIssuesPage({ user }) {
             )
           )}
 
-          {/* LARGE ISSUE PHOTO SECTION */}
+          {/* PHOTO SECTION (COMPARATIVE VIEW IF RESOLVED) */}
           <div style={{ marginBottom: '1.75rem' }}>
-            <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: 800, marginBottom: '0.6rem' }}>
-              Problem Photo
-            </h4>
-            {selectedIssue.photo ? (
-              <div style={{ width: '100%', maxHeight: '420px', borderRadius: '16px', overflow: 'hidden', border: '1.5px solid #e2e8f0', background: '#0f172a' }}>
-                <img 
-                  src={selectedIssue.photo} 
-                  alt={selectedIssue.category} 
-                  style={{ width: '100%', height: '100%', maxHeight: '420px', objectFit: 'contain', display: 'block', margin: '0 auto' }} 
-                />
+            {selectedIssue.status === 'Resolved' || selectedIssue.resolved ? (
+              <div>
+                <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: 800, marginBottom: '0.75rem' }}>
+                  Resolution Verification Photos (Before & After Comparison)
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+                  {/* Before Photo */}
+                  <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <strong style={{ color: '#dc2626', fontSize: '0.85rem' }}>🔴 BEFORE (Reported Problem)</strong>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{selectedIssue.date}</span>
+                    </div>
+                    {selectedIssue.beforePhoto || selectedIssue.photo ? (
+                      <div style={{ height: '240px', borderRadius: '10px', overflow: 'hidden', background: '#0f172a' }}>
+                        <img 
+                          src={selectedIssue.beforePhoto || selectedIssue.photo} 
+                          alt="Before problem" 
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ height: '240px', borderRadius: '10px', background: '#ffffff', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
+                        <ImageOff size={32} style={{ marginBottom: '0.5rem' }} />
+                        <span>No Before Photo Uploaded</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* After Photo */}
+                  <div style={{ background: '#f0fdf4', border: '2px solid #86efac', borderRadius: '14px', padding: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <strong style={{ color: '#16a34a', fontSize: '0.85rem' }}>🟢 AFTER SOLUTION ✓ (Verified Result)</strong>
+                      <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 700 }}>{selectedIssue.resolvedDate}</span>
+                    </div>
+                    {selectedIssue.afterPhoto ? (
+                      <div style={{ height: '240px', borderRadius: '10px', overflow: 'hidden', background: '#0f172a', border: '1px solid #86efac' }}>
+                        <img 
+                          src={selectedIssue.afterPhoto} 
+                          alt="After solution" 
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ height: '240px', borderRadius: '10px', background: '#ffffff', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
+                        <ImageOff size={32} style={{ marginBottom: '0.5rem' }} />
+                        <span>No After Photo</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             ) : (
-              <div style={{ background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: '14px', padding: '2.5rem 1.5rem', textAlign: 'center', color: '#64748b' }}>
-                <ImageOff size={38} style={{ color: '#94a3b8', margin: '0 auto 0.6rem', display: 'block' }} />
-                <strong style={{ color: '#475569', fontSize: '0.95rem', display: 'block' }}>No photo available</strong>
-                <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>The reporter did not attach an image for this issue report.</span>
+              <div>
+                <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: 800, marginBottom: '0.6rem' }}>
+                  Problem Photo
+                </h4>
+                {selectedIssue.photo ? (
+                  <div style={{ width: '100%', maxHeight: '420px', borderRadius: '16px', overflow: 'hidden', border: '1.5px solid #e2e8f0', background: '#0f172a' }}>
+                    <img 
+                      src={selectedIssue.photo} 
+                      alt={selectedIssue.category} 
+                      style={{ width: '100%', height: '100%', maxHeight: '420px', objectFit: 'contain', display: 'block', margin: '0 auto' }} 
+                    />
+                  </div>
+                ) : (
+                  <div style={{ background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: '14px', padding: '2.5rem 1.5rem', textAlign: 'center', color: '#64748b' }}>
+                    <ImageOff size={38} style={{ color: '#94a3b8', margin: '0 auto 0.6rem', display: 'block' }} />
+                    <strong style={{ color: '#475569', fontSize: '0.95rem', display: 'block' }}>No photo available</strong>
+                    <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>The reporter did not attach an image for this issue report.</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -662,8 +876,37 @@ export default function CommunityIssuesPage({ user }) {
                 </code>
               </div>
 
-              {/* Photo Preview if attached */}
-              {issue.photo ? (
+              {/* Photo Preview / Comparison if attached */}
+              {issue.status === 'Resolved' || issue.resolved ? (
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                    <div>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#dc2626', display: 'block', marginBottom: '0.15rem' }}>BEFORE</span>
+                      {issue.beforePhoto || issue.photo ? (
+                        <div style={{ borderRadius: '8px', overflow: 'hidden', height: '95px', background: '#0f172a' }}>
+                          <img src={issue.beforePhoto || issue.photo} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      ) : (
+                        <div style={{ borderRadius: '8px', background: '#f8fafc', border: '1px dashed #cbd5e1', height: '95px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#94a3b8' }}>
+                          No Before
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#16a34a', display: 'block', marginBottom: '0.15rem' }}>AFTER SOLUTION ✓</span>
+                      {issue.afterPhoto ? (
+                        <div style={{ borderRadius: '8px', overflow: 'hidden', height: '95px', background: '#0f172a', border: '2px solid #86efac' }}>
+                          <img src={issue.afterPhoto} alt="After" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      ) : (
+                        <div style={{ borderRadius: '8px', background: '#f8fafc', border: '1px dashed #cbd5e1', height: '95px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#94a3b8' }}>
+                          No Photo
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : issue.photo ? (
                 <div style={{ marginBottom: '0.75rem', borderRadius: '10px', overflow: 'hidden', height: '140px', background: '#0f172a' }}>
                   <img src={issue.photo} alt={issue.category} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
@@ -693,8 +936,17 @@ export default function CommunityIssuesPage({ user }) {
                 </div>
               </div>
 
-              {/* Adoption Information on Card if Adopted */}
-              {issue.adopted && (
+              {/* Resolution Info or Adoption Info on Card */}
+              {issue.status === 'Resolved' || issue.resolved ? (
+                <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '0.75rem 0.85rem', marginBottom: '0.85rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#16a34a', fontWeight: 800, fontSize: '0.85rem', marginBottom: '0.2rem' }}>
+                    <CheckCircle2 size={15} /> Solved by: {issue.resolvedBy}
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#166534' }}>
+                    📅 Solved on: <strong>{issue.resolvedDate}</strong> at <strong>{issue.resolvedTime}</strong>
+                  </div>
+                </div>
+              ) : issue.adopted ? (
                 <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '0.65rem 0.85rem', marginBottom: '0.85rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#16a34a', fontWeight: 800, fontSize: '0.85rem', marginBottom: '0.2rem' }}>
                     <CheckCircle2 size={15} /> ✓ Already Adopted
@@ -706,7 +958,7 @@ export default function CommunityIssuesPage({ user }) {
                     Adopted on: {issue.adoptedDate} at {issue.adoptedTime}
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Card Footer: Priority Dot, Status Pill & Action Buttons */}
@@ -720,7 +972,7 @@ export default function CommunityIssuesPage({ user }) {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <button 
                   className="btn btn-secondary btn-sm"
                   onClick={() => {
@@ -745,10 +997,30 @@ export default function CommunityIssuesPage({ user }) {
                   </button>
                 )}
 
-                {/* If adopted and not in details mode */}
-                {issue.adopted && (
-                  <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 700, background: '#ecfdf5', padding: '0.35rem 0.6rem', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
-                    ✓ Adopted
+                {/* Show Add After Photo & Mark as Resolved buttons for NGO if adopted but unresolved */}
+                {isNGOUser && issue.adopted && issue.status !== 'Resolved' && !issue.resolved && (
+                  <>
+                    <button 
+                      className="btn btn-primary btn-sm"
+                      onClick={(e) => handleOpenResolveModal(issue, e)}
+                      style={{ flex: 1, justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', background: '#2563eb' }}
+                    >
+                      <Camera size={14} /> {issue.afterPhoto ? 'Update Photo' : 'Add Photo'}
+                    </button>
+                    <button 
+                      className="btn btn-primary btn-sm"
+                      onClick={(e) => handleOpenResolveModal(issue, e)}
+                      style={{ flex: 1, justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', background: '#059669' }}
+                    >
+                      <CheckCircle2 size={14} /> Resolve
+                    </button>
+                  </>
+                )}
+
+                {/* If resolved */}
+                {(issue.status === 'Resolved' || issue.resolved) && (
+                  <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, background: '#f0fdf4', padding: '0.35rem 0.6rem', borderRadius: '6px', border: '1px solid #86efac' }}>
+                    ✓ Resolved
                   </span>
                 )}
               </div>
@@ -758,7 +1030,7 @@ export default function CommunityIssuesPage({ user }) {
         ))}
       </div>
 
-      {/* CONFIRMATION MODAL */}
+      {/* CONFIRMATION ADOPTION MODAL */}
       {confirmingAdoptIssue && (
         <div className="modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
           <div className="modal-box" style={{ background: '#ffffff', borderRadius: '18px', padding: '2rem', maxWidth: '480px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '1px solid #e2e8f0' }}>
@@ -805,6 +1077,148 @@ export default function CommunityIssuesPage({ user }) {
                 <Check size={16} /> Confirm & Adopt Issue
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* RESOLUTION MODAL (MANDATORY AFTER-SOLUTION PHOTO) */}
+      {resolvingIssue && (
+        <div className="modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div className="modal-box" style={{ background: '#ffffff', borderRadius: '20px', padding: '2rem', maxWidth: '540px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 40px rgba(0,0,0,0.18)', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    Add After-Solution Photo / Proof of Work
+                  </h3>
+                  <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                    {resolvingIssue.id} &bull; {resolvingIssue.category}
+                  </span>
+                </div>
+              </div>
+              <button onClick={() => setResolvingIssue(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <XCircle size={22} style={{ color: '#94a3b8' }} />
+              </button>
+            </div>
+
+            {/* Error Banner */}
+            {resolutionError && (
+              <div style={{ marginBottom: '1rem', background: '#fef2f2', border: '1.5px solid #fecaca', color: '#991b1b', padding: '0.75rem 1rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem' }}>
+                <AlertCircle size={18} />
+                <span>{resolutionError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitResolution}>
+              {/* Problem Summary Box */}
+              <div style={{ background: '#f8fafc', padding: '0.9rem 1.1rem', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '0.2rem' }}>
+                  Location: <strong style={{ color: '#0f172a' }}>{resolvingIssue.area}, {resolvingIssue.village}</strong>
+                </div>
+                <div style={{ fontSize: '0.88rem', color: '#334155', fontStyle: 'italic', marginBottom: '0.5rem' }}>
+                  "{resolvingIssue.description}"
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#059669', fontWeight: 700 }}>
+                  Working as: {user?.fullName || 'NGO / Volunteer Organization'}
+                </div>
+              </div>
+
+              {/* Photo Comparison Section */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label className="input-label-bold" style={{ display: 'block', marginBottom: '0.4rem' }}>
+                  1. Before Photo (Original Citizen Report)
+                </label>
+                {resolvingIssue.photo ? (
+                  <div style={{ width: '100%', height: '130px', borderRadius: '10px', overflow: 'hidden', background: '#0f172a', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
+                    <img src={resolvingIssue.photo} alt="Before problem" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ) : (
+                  <div style={{ padding: '0.75rem', borderRadius: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem', marginBottom: '1rem' }}>
+                    No before photo was uploaded for this issue.
+                  </div>
+                )}
+
+                <label className="input-label-bold" style={{ display: 'block', marginBottom: '0.4rem' }}>
+                  2. Upload After-Solution Photo <span style={{ color: '#dc2626' }}>* (Required for resolution)</span>
+                </label>
+                <div style={{ border: solutionPhoto ? '2px solid #10b981' : '2px dashed #cbd5e1', borderRadius: '12px', padding: '1rem', textAlign: 'center', background: '#f8fafc' }}>
+                  {solutionPhoto ? (
+                    <div>
+                      <div style={{ width: '100%', height: '160px', borderRadius: '10px', overflow: 'hidden', background: '#0f172a', marginBottom: '0.75rem', border: '2px solid #86efac' }}>
+                        <img src={solutionPhoto} alt="After solution" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.82rem', color: '#10b981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <CheckCircle2 size={16} /> After-solution photo attached
+                        </span>
+                        <label htmlFor="comm-solution-photo-upload" className="btn btn-outline btn-sm" style={{ cursor: 'pointer', padding: '0.3rem 0.75rem', fontSize: '0.8rem' }}>
+                          Change Photo
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label htmlFor="comm-solution-photo-upload" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', padding: '1rem 0' }}>
+                        <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Camera size={22} />
+                        </div>
+                        <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>Click to upload after photo</strong>
+                        <span style={{ color: '#64748b', fontSize: '0.78rem' }}>Upload proof of the resolved problem (PNG, JPG)</span>
+                      </label>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    id="comm-solution-photo-upload"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleSolutionPhotoUpload}
+                    style={{ display: 'none' }}
+                  />
+                </div>
+              </div>
+
+              {/* Solution Description */}
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="input-label-bold">Solution Description & Work Done</label>
+                <textarea
+                  className="form-input"
+                  rows="3"
+                  placeholder="Describe the solution applied (e.g. Cleared blocked drainage, repaired pavement, installed new fixture)..."
+                  value={solutionDescription}
+                  onChange={(e) => setSolutionDescription(e.target.value)}
+                ></textarea>
+              </div>
+
+              {/* Modal Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', flexWrap: 'wrap' }}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setResolvingIssue(null)} style={{ fontWeight: 700 }}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleSaveAfterPhotoOnly}
+                  disabled={isSubmittingResolution}
+                  style={{ fontWeight: 700, color: '#2563eb', borderColor: '#bfdbfe', background: '#eff6ff', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Camera size={15} />
+                  Save After Photo Only
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                  disabled={isSubmittingResolution}
+                  style={{ background: '#059669', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <CheckCircle2 size={16} />
+                  {isSubmittingResolution ? 'Saving Resolution...' : 'Save & Mark as Resolved'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

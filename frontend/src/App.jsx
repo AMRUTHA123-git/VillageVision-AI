@@ -11,7 +11,6 @@ import ResetPasswordPage from './components/ResetPasswordPage';
 
 // Import Role-Based Dashboards
 import CitizenDashboard from './components/dashboards/CitizenDashboard';
-import AuthorityDashboard from './components/dashboards/AuthorityDashboard';
 import NGODashboard from './components/dashboards/NGODashboard';
 
 export default function App() {
@@ -69,17 +68,13 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Helper to render role-specific dashboard
+  // Helper to render role-specific dashboard (Citizen or NGO / Volunteer)
   const renderDashboardForRole = () => {
     if (!user) return null;
 
     const role = user.role || 'Citizen';
 
     switch (role) {
-      case 'Admin':
-      case 'Government Authority':
-      case 'NGO / Government':
-        return <AuthorityDashboard user={user} onLogout={handleLogout} />;
       case 'NGO':
       case 'Volunteer':
       case 'NGO / Volunteer':

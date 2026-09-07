@@ -4,7 +4,6 @@ import {
   ArrowLeft, 
   User, 
   Users, 
-  ShieldCheck,
   Eye, 
   EyeOff, 
   AlertCircle, 
@@ -42,12 +41,6 @@ export default function SignUpPage({ onNavigateToLogin, onSignUpSuccess }) {
       name: 'NGO / Volunteer', 
       icon: <Users size={18} />, 
       colorClass: 'role-icon-blue' 
-    },
-    { 
-      id: 'Government Authority', 
-      name: 'Government Authority', 
-      icon: <ShieldCheck size={18} />, 
-      colorClass: 'role-icon-orange' 
     }
   ];
 
@@ -96,9 +89,9 @@ export default function SignUpPage({ onNavigateToLogin, onSignUpSuccess }) {
     }
 
     // 5. Role Selection
-    const validRoles = ['Citizen', 'NGO / Volunteer', 'Government Authority'];
+    const validRoles = ['Citizen', 'NGO / Volunteer'];
     if (!selectedRole || !validRoles.includes(selectedRole)) {
-      setErrorMessage('Please select a role (Citizen, NGO / Volunteer, or Government Authority).');
+      setErrorMessage('Please select a role (Citizen or NGO / Volunteer).');
       return;
     }
 

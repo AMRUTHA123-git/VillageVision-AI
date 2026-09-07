@@ -4,15 +4,14 @@ import {
   ArrowLeft, 
   User, 
   Users, 
-  ShieldCheck, 
   Eye, 
   EyeOff, 
   AlertCircle, 
-  CheckCircle2,
-  Info,
+  CheckCircle2, 
+  Info, 
   Check, 
   Lock, 
-  Mail
+  Mail 
 } from 'lucide-react';
 import villageBg from '../assets/village_bg.jpg';
 import { authenticateUser } from '../utils/authManager';
@@ -36,7 +35,7 @@ export default function LoginPage({
   const [infoMessage, setInfoMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // 3 Supported Roles
+  // 2 Supported Roles
   const roles = [
     { 
       id: 'Citizen', 
@@ -49,12 +48,6 @@ export default function LoginPage({
       name: 'NGO / Volunteer', 
       icon: <Users size={18} />, 
       colorClass: 'role-icon-blue' 
-    },
-    { 
-      id: 'Government Authority', 
-      name: 'Government Authority', 
-      icon: <ShieldCheck size={18} />, 
-      colorClass: 'role-icon-orange' 
     }
   ];
 

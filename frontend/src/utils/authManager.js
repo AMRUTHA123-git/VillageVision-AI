@@ -2,7 +2,7 @@
  * VillageVision AI — Account & Authentication Manager
  *
  * Manages registered users, credentials validation, and role enforcement.
- * Supported roles: 'Citizen', 'NGO / Volunteer', and 'Government Authority'
+ * Supported roles: 'Citizen' and 'NGO / Volunteer'
  * Persists accounts in localStorage under key: villagevision_registered_accounts
  */
 
@@ -26,14 +26,6 @@ const DEFAULT_ACCOUNTS = [
     mobileNumber: '9988776655',
     password: 'Ngo@123',
     role: 'NGO / Volunteer'
-  },
-  {
-    id: 'USR-003',
-    fullName: 'GVMC Zonal Officer',
-    email: 'authority@villagevision.ai',
-    mobileNumber: '9848012345',
-    password: 'Authority@123',
-    role: 'Government Authority'
   },
   {
     id: 'USR-004',
@@ -168,11 +160,11 @@ export function registerAccount({ fullName, email, mobileNumber = '', password, 
   const trimmedEmail = email.trim().toLowerCase();
 
   // Validate allowed role
-  const validRoles = ['Citizen', 'NGO / Volunteer', 'Government Authority', 'Volunteer', 'NGO'];
+  const validRoles = ['Citizen', 'NGO / Volunteer', 'Volunteer', 'NGO'];
   if (!validRoles.includes(role)) {
     return {
       success: false,
-      error: 'Please select a valid role (Citizen, NGO / Volunteer, or Government Authority).'
+      error: 'Please select a valid role (Citizen or NGO / Volunteer).'
     };
   }
 
@@ -258,10 +250,8 @@ export function authenticateUser({ email, password, role }) {
   const isCitizenMatch = selectedRoleNorm.includes('citizen') && accountRoleNorm.includes('citizen');
   const isNgoMatch = (selectedRoleNorm.includes('ngo') || selectedRoleNorm.includes('volunteer')) && 
                      (accountRoleNorm.includes('ngo') || accountRoleNorm.includes('volunteer'));
-  const isGovMatch = (selectedRoleNorm.includes('authority') || selectedRoleNorm.includes('government')) &&
-                     (accountRoleNorm.includes('authority') || accountRoleNorm.includes('government'));
 
-  const isRoleMatching = isCitizenMatch || isNgoMatch || isGovMatch || (selectedRoleNorm === accountRoleNorm);
+  const isRoleMatching = isCitizenMatch || isNgoMatch || (selectedRoleNorm === accountRoleNorm);
 
   if (!isRoleMatching) {
     return {

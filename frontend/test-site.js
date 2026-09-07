@@ -59,7 +59,7 @@ async function runAudit() {
     '12. Adoption Persists After Page Refresh': false,
     '13. Second NGO Sees Already Adopted (Lock Active)': false,
     '14. Citizen Sees Adoption Details in My Reports': false,
-    '15. Government Authority Login & Dashboard': false,
+    '15. Government Authority Role Completely Removed': false,
     '16. Community Map with Visakhapatnam Markers': false,
     '17. AI Insights Locality Analytics': false,
     '18. Notifications & Profile Views': false,
@@ -385,9 +385,9 @@ async function runAudit() {
     }
 
     // ----------------------------------------------------
-    // STEP 15: GOVERNMENT AUTHORITY LOGIN & DASHBOARD
+    // STEP 15: VERIFY GOVERNMENT AUTHORITY IS COMPLETELY REMOVED
     // ----------------------------------------------------
-    console.log('\n➡️ STEP 15: Testing Government Authority Workspace...');
+    console.log('\n➡️ STEP 15: Verifying Government Authority role is completely removed...');
     await page.evaluate(() => {
       const logoutBtn = document.querySelector('.sidebar-logout-btn') || document.querySelector('.topbar-logout-btn');
       if (logoutBtn) logoutBtn.click();
@@ -401,27 +401,29 @@ async function runAudit() {
     });
     await page.waitForSelector('.centered-login-card', { timeout: 5000 });
 
+    const availableLoginRoles = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('.role-tab-btn')).map(b => b.textContent.trim());
+    });
+    console.log('✓ Available Login Roles:', availableLoginRoles);
+
+    const hasNoGovRole = !availableLoginRoles.some(r => r.includes('Government') || r.includes('Authority'));
+    const hasExactlyTwoRoles = availableLoginRoles.length === 2;
+
+    if (hasNoGovRole && hasExactlyTwoRoles) {
+      console.log('✓ SUCCESS: Government Authority role is completely removed. Only Citizen & NGO / Volunteer exist.');
+      results['15. Government Authority Role Completely Removed'] = true;
+    }
+
+    // Log back in as NGO to test Map, AI Insights, Notifications, and Profile
     await page.evaluate(() => {
       const roleBtns = Array.from(document.querySelectorAll('.role-tab-btn'));
-      const govRole = roleBtns.find(b => b.textContent.includes('Government') || b.textContent.includes('Authority'));
-      if (govRole) govRole.click();
+      const ngoRole = roleBtns.find(b => b.textContent.includes('NGO') || b.textContent.includes('Volunteer'));
+      if (ngoRole) ngoRole.click();
     });
-
-    await typeInput(page, '#email', 'authority@villagevision.ai');
-    await typeInput(page, '#password', 'Authority@123');
+    await typeInput(page, '#email', 'ngo@villagevision.ai');
+    await typeInput(page, '#password', 'Ngo@123');
     await page.click('button[type="submit"]');
     await page.waitForSelector('.dashboard-sidebar', { timeout: 6000 });
-
-    const govSidebarItems = await page.evaluate(() => {
-      return Array.from(document.querySelectorAll('.sidebar-link')).map(b => b.textContent.trim());
-    });
-    console.log('✓ Government Workspace Navigation:', govSidebarItems);
-
-    const hasNoCitizenReportInGov = !govSidebarItems.some(i => i.includes('Report Issue') || i.includes('My Reports'));
-    if (hasNoCitizenReportInGov) {
-      console.log('✓ SUCCESS: Government Dashboard strictly does NOT contain Report Issue or My Reports.');
-      results['15. Government Authority Login & Dashboard'] = true;
-    }
 
     // ----------------------------------------------------
     // STEP 16, 17, 18: MAP, AI INSIGHTS, NOTIFICATIONS, PROFILE

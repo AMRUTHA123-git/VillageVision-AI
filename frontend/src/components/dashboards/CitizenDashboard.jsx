@@ -28,7 +28,7 @@ import {
   Construction,
   Sparkles
 } from 'lucide-react';
-import { getStoredIssues } from '../../utils/issueData';
+import { getStoredIssues, subscribeToIssueUpdates } from '../../utils/issueData';
 
 export default function CitizenDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('home');
@@ -36,7 +36,15 @@ export default function CitizenDashboard({ user, onLogout }) {
 
   useEffect(() => {
     setIssues(getStoredIssues());
-  }, [activeTab]);
+
+    const unsubscribe = subscribeToIssueUpdates((latest) => {
+      setIssues(latest);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // Clean, Compact Sidebar Options for Citizen
   const sidebarItems = [
@@ -53,9 +61,9 @@ export default function CitizenDashboard({ user, onLogout }) {
 
   // Calculated stats
   const totalCount = issues.length;
-  const openCount = issues.filter(r => r.status === 'Open' || r.status === 'Pending Verification').length;
-  const inProgressCount = issues.filter(r => r.status === 'In Progress' || r.status === 'Assigned').length;
-  const resolvedCount = issues.filter(r => r.status === 'Resolved').length;
+  const openCount = issues.filter(r => (r.status === 'Open' || r.status === 'Pending Verification') && !r.adopted && !r.resolved).length;
+  const inProgressCount = issues.filter(r => r.status === 'In Progress' || r.status === 'Assigned' || (r.adopted && r.status !== 'Resolved' && !r.resolved)).length;
+  const resolvedCount = issues.filter(r => r.status === 'Resolved' || r.resolved === true).length;
 
   const renderContent = () => {
     switch (activeTab) {

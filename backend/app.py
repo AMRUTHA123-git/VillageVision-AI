@@ -64,6 +64,8 @@ def login():
 
     valid_roles = [
         "Citizen", 
+        "NGO / Government",
+        "Admin",
         "NGO / Volunteer", 
         "Government Authority", 
         "Donor", 
