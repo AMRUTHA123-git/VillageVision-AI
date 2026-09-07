@@ -1,1066 +1,493 @@
 import React, { useState, useEffect } from 'react';
-import {
-  PlusCircle,
-  MapPin,
-  Camera,
-  CheckCircle2,
-  AlertCircle,
-  Navigation,
-  Upload,
-  FileText,
-  Map as MapIcon
+import { 
+  PlusCircle, 
+  MapPin, 
+  Camera, 
+  CheckCircle2, 
+  AlertCircle, 
+  Navigation, 
+  Upload, 
+  FileText, 
+  Map as MapIcon, 
+  ArrowRight,
+  Sparkles,
+  Layers,
+  Hash
 } from 'lucide-react';
+import { saveIssue, ISSUE_CATEGORIES, VISAKHAPATNAM_VILLAGES } from '../utils/issueData';
 
-import { LOCATION_HIERARCHY, saveIssue } from '../utils/issueData';
-
+// Leaflet CSS & Component Imports
 import 'leaflet/dist/leaflet.css';
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  useMapEvents
-} from 'react-leaflet';
-
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 
-// Fix Leaflet marker icons in Vite
+// Fix Leaflet default icon path in Vite
 delete L.Icon.Default.prototype._getIconUrl;
-
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-  iconUrl:
-    'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl:
-    'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
-// Allow user to click the map and select a location
+// Helper component to center map view dynamically when coordinates change
+function RecenterMap({ lat, lng }) {
+  const map = useMap();
+  useEffect(() => {
+    if (map && lat && lng && Number.isFinite(lat) && Number.isFinite(lng)) {
+      try {
+        map.setView([lat, lng], 14, { animate: false });
+      } catch (e) {
+        // Safe fallback
+      }
+    }
+  }, [lat, lng, map]);
+  return null;
+}
+
+// Allow user to click on map to reposition marker
 function MapClickHandler({ onLocationChange }) {
   useMapEvents({
     click(e) {
-      onLocationChange(e.latlng.lat, e.latlng.lng);
+      if (e.latlng && onLocationChange) {
+        onLocationChange(parseFloat(e.latlng.lat.toFixed(4)), parseFloat(e.latlng.lng.toFixed(4)));
+      }
     }
   });
-
   return null;
 }
 
 export default function ReportIssuePage({ user, onNavigate }) {
   const [category, setCategory] = useState('Road Damage');
   const [description, setDescription] = useState('');
-
-  // Photo / Camera
   const [photoPreview, setPhotoPreview] = useState(null);
 
-  // Location hierarchy
-  const [selectedState, setSelectedState] =
-    useState('Andhra Pradesh');
+  // Visakhapatnam Location State
+  const [selectedState] = useState('Andhra Pradesh');
+  const [selectedDistrict] = useState('Visakhapatnam');
+  const [selectedVillage, setSelectedVillage] = useState('Bheemunipatnam');
+  const [selectedArea, setSelectedArea] = useState('');
+  const [pincode, setPincode] = useState('531163');
 
-  const [selectedDistrict, setSelectedDistrict] =
-    useState('Kakinada');
+  // Priority Selection: High, Medium, Low
+  const [priority, setPriority] = useState('High');
 
-  const [selectedVillage, setSelectedVillage] =
-    useState('Tuni');
+  // Geolocation & Coordinates (Visakhapatnam)
+  const [latitude, setLatitude] = useState(17.8912);
+  const [longitude, setLongitude] = useState(83.4542);
+  const [geoDetected, setGeoDetected] = useState(false);
+  const [geoError, setGeoError] = useState('');
 
-  const [selectedArea, setSelectedArea] =
-    useState('School Road');
+  // Submission State
+  const [errorMessage, setErrorMessage] = useState('');
+  const [submittedIssue, setSubmittedIssue] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Coordinates
-  const [latitude, setLatitude] =
-    useState(17.3542);
-
-  const [longitude, setLongitude] =
-    useState(82.5488);
-
-  const [geoDetected, setGeoDetected] =
-    useState(false);
-
-  const [geoError, setGeoError] =
-    useState('');
-
-  // Submission
-  const [errorMessage, setErrorMessage] =
-    useState('');
-
-  const [submittedIssue, setSubmittedIssue] =
-    useState(null);
-
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
-
-  // -----------------------------
-  // LOCATION OPTIONS
-  // -----------------------------
-
-  const stateOptions =
-    Object.keys(LOCATION_HIERARCHY || {});
-
-  const districtOptions =
-    selectedState &&
-    LOCATION_HIERARCHY[selectedState]
-      ? Object.keys(
-          LOCATION_HIERARCHY[selectedState]
-        )
-      : [];
-
-  const villageOptions =
-    selectedState &&
-    selectedDistrict &&
-    LOCATION_HIERARCHY[selectedState] &&
-    LOCATION_HIERARCHY[selectedState][selectedDistrict]
-      ? Object.keys(
-          LOCATION_HIERARCHY[selectedState][selectedDistrict]
-        )
-      : [];
-
-  const areaOptions =
-    selectedState &&
-    selectedDistrict &&
-    selectedVillage &&
-    LOCATION_HIERARCHY[selectedState] &&
-    LOCATION_HIERARCHY[selectedState][selectedDistrict] &&
-    LOCATION_HIERARCHY[selectedState][selectedDistrict][selectedVillage]
-      ? LOCATION_HIERARCHY[selectedState][selectedDistrict][selectedVillage]
-      : [];
-
-  // -----------------------------
-  // STATE CHANGE
-  // -----------------------------
-
-  const handleStateChange = (state) => {
-    setSelectedState(state);
-
-    const districts =
-      Object.keys(
-        LOCATION_HIERARCHY[state] || {}
-      );
-
-    const firstDistrict =
-      districts[0] || '';
-
-    setSelectedDistrict(firstDistrict);
-
-    const villages =
-      firstDistrict
-        ? Object.keys(
-            LOCATION_HIERARCHY[state][firstDistrict] || {}
-          )
-        : [];
-
-    const firstVillage =
-      villages[0] || '';
-
-    setSelectedVillage(firstVillage);
-
-    const areas =
-      firstVillage
-        ? LOCATION_HIERARCHY[state][firstDistrict][firstVillage] || []
-        : [];
-
-    setSelectedArea(areas[0] || '');
+  // Photo Upload Handler with FileReader preview
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  // -----------------------------
-  // DISTRICT CHANGE
-  // -----------------------------
-
-  const handleDistrictChange = (district) => {
-    setSelectedDistrict(district);
-
-    const villages =
-      Object.keys(
-        LOCATION_HIERARCHY[selectedState]?.[district] || {}
-      );
-
-    const firstVillage =
-      villages[0] || '';
-
-    setSelectedVillage(firstVillage);
-
-    const areas =
-      LOCATION_HIERARCHY[selectedState]?.[district]?.[firstVillage] || [];
-
-    setSelectedArea(areas[0] || '');
-  };
-
-  // -----------------------------
-  // VILLAGE CHANGE
-  // -----------------------------
-
-  const handleVillageChange = (village) => {
-    setSelectedVillage(village);
-
-    const areas =
-      LOCATION_HIERARCHY[selectedState]?.[
-        selectedDistrict
-      ]?.[village] || [];
-
-    setSelectedArea(areas[0] || '');
-  };
-
-  // -----------------------------
-  // PHOTO / CAMERA
-  // -----------------------------
-
-  const handlePhotoUpload = (event) => {
-    const file = event.target.files?.[0];
-
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onloadend = () => {
-      setPhotoPreview(reader.result);
-    };
-
-    reader.readAsDataURL(file);
-  };
-
-  // -----------------------------
-  // CURRENT LOCATION
-  // -----------------------------
-
+  // Browser Geolocation Trigger
   const handleGetLocation = () => {
     setGeoError('');
     setGeoDetected(false);
 
     if (!navigator.geolocation) {
-      setGeoError(
-        'Geolocation is not supported by this browser.'
-      );
+      setGeoError('Geolocation is not supported by your browser. Please select location manually.');
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat =
-          Number(position.coords.latitude.toFixed(6));
-
-        const lng =
-          Number(position.coords.longitude.toFixed(6));
-
+      (pos) => {
+        const lat = parseFloat(pos.coords.latitude.toFixed(4));
+        const lng = parseFloat(pos.coords.longitude.toFixed(4));
         setLatitude(lat);
         setLongitude(lng);
         setGeoDetected(true);
       },
-      () => {
-        setGeoError(
-          'Location access was denied or unavailable. Please select the location manually on the map.'
-        );
+      (err) => {
+        console.warn('Geolocation access denied/failed:', err);
+        setGeoError('Unable to access your GPS location. You can click on the map below or enter the area manually.');
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
+      { timeout: 10000, enableHighAccuracy: true }
     );
   };
 
-  // -----------------------------
-  // MAP CLICK
-  // -----------------------------
-
-  const handleMapLocationChange = (lat, lng) => {
-    setLatitude(Number(lat.toFixed(6)));
-    setLongitude(Number(lng.toFixed(6)));
-    setGeoDetected(true);
-    setGeoError('');
-  };
-
-  // -----------------------------
-  // SUBMIT
-  // -----------------------------
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-
+  // Form Submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
     setErrorMessage('');
 
     if (!category) {
-      setErrorMessage(
-        'Please select an issue category.'
-      );
+      setErrorMessage('Please select an issue category.');
       return;
     }
 
     if (!description.trim()) {
-      setErrorMessage(
-        'Please describe the problem.'
-      );
+      setErrorMessage('Please enter a description for the issue.');
       return;
     }
 
-    if (
-      !selectedState ||
-      !selectedDistrict ||
-      !selectedVillage ||
-      !selectedArea
-    ) {
-      setErrorMessage(
-        'Please complete the location fields.'
-      );
+    if (!selectedVillage) {
+      setErrorMessage('Please select a village / area within Visakhapatnam.');
+      return;
+    }
+
+    if (!selectedArea.trim()) {
+      setErrorMessage('Please specify the Area / Street (e.g. School Road, Market Street).');
+      return;
+    }
+
+    if (pincode && pincode.trim().length > 0 && pincode.trim().length !== 6) {
+      setErrorMessage('Please enter a valid 6-digit pincode.');
       return;
     }
 
     setIsSubmitting(true);
 
-    const priority =
-      category === 'Road Damage' ||
-      category === 'Water Leakage'
-        ? 'High'
-        : category === 'Broken Streetlight' ||
-          category === 'Drainage Problem'
-        ? 'Medium'
-        : 'Low';
-
     const created = saveIssue({
       category,
       description: description.trim(),
       photo: photoPreview,
-
       state: selectedState,
       district: selectedDistrict,
       village: selectedVillage,
-      area: selectedArea,
-
+      area: selectedArea.trim(),
+      pincode: (pincode || '531163').trim(),
       latitude,
       longitude,
-
       priority,
-
-      reportedBy:
-        user?.fullName ||
-        'Authenticated User',
-
-      reportedByRole:
-        user?.role ||
-        'Citizen'
+      reportedBy: user?.fullName || 'Authenticated Citizen',
+      reportedByRole: user?.role || 'Citizen'
     });
 
     setIsSubmitting(false);
     setSubmittedIssue(created);
   };
 
-  // -----------------------------
-  // SUCCESS PAGE
-  // -----------------------------
-
-  if (submittedIssue) {
-    return (
-      <div className="report-issue-wrapper">
-
-        <div
-          className="dash-card"
-          style={{
-            textAlign: 'center',
-            padding: '3rem 2rem'
-          }}
-        >
-
-          <CheckCircle2
-            size={60}
-            style={{
-              color: 'var(--primary-emerald)',
-              margin: '0 auto 1rem'
-            }}
-          />
-
-          <h2
-            style={{
-              color: '#fff',
-              marginBottom: '0.75rem'
-            }}
-          >
-            Community Issue Reported Successfully!
-          </h2>
-
-          <p
-            style={{
-              color: 'var(--text-muted)',
-              marginBottom: '2rem'
-            }}
-          >
-            Your issue has been geo-tagged and added
-            to the community issue system.
-          </p>
-
-          <div
-            style={{
-              maxWidth: '500px',
-              margin: '0 auto 2rem',
-              padding: '1.5rem',
-              borderRadius: '16px',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid var(--border-color)',
-              textAlign: 'left'
-            }}
-          >
-
-            <p>
-              <strong>Issue ID:</strong>{' '}
-              {submittedIssue.id}
-            </p>
-
-            <p>
-              <strong>Category:</strong>{' '}
-              {submittedIssue.category}
-            </p>
-
-            <p>
-              <strong>Location:</strong>{' '}
-              {submittedIssue.area},{' '}
-              {submittedIssue.village}
-            </p>
-
-            <p>
-              <strong>Priority:</strong>{' '}
-              {submittedIssue.priority}
-            </p>
-
-            <p>
-              <strong>Status:</strong>{' '}
-              <span className="status-pill open">
-                Open
-              </span>
-            </p>
-
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: '1rem',
-              flexWrap: 'wrap'
-            }}
-          >
-
-            <button
-              className="btn btn-primary"
-              onClick={() =>
-                onNavigate('my-reports')
-              }
-            >
-              <FileText size={18} />
-              View My Report
-            </button>
-
-            <button
-              className="btn btn-secondary"
-              onClick={() =>
-                onNavigate('map')
-              }
-            >
-              <MapIcon size={18} />
-              View Community Map
-            </button>
-
-          </div>
-
-        </div>
-
-      </div>
-    );
-  }
-
-  // -----------------------------
-  // MAIN PAGE
-  // -----------------------------
-
   return (
     <div className="report-issue-wrapper">
-
-      {/* HEADER */}
-
-      <div
-        className="dash-card-header"
-        style={{
-          marginBottom: '1.5rem'
-        }}
-      >
-
+      
+      {/* PAGE HEADER */}
+      <div className="dash-card-header" style={{ marginBottom: '1.5rem' }}>
         <div>
-
-          <h1
-            className="hero-title"
-            style={{
-              fontSize: '2rem',
-              textAlign: 'left',
-              marginBottom: '0.25rem'
-            }}
-          >
-            Report a{' '}
-            <span className="gradient-text">
-              Community Issue
-            </span>
+          <h1 className="hero-title" style={{ fontSize: '1.85rem', textAlign: 'left', marginBottom: '0.25rem', color: '#0f172a' }}>
+            Report a <span className="gradient-text">Community Issue</span>
           </h1>
-
-          <p
-            style={{
-              color: 'var(--text-muted)'
-            }}
-          >
-            Report problems in your village with
-            photo and exact location.
+          <p style={{ color: '#64748b', fontSize: '0.95rem' }}>
+            Report civic, road, sanitation, or infrastructure problems across <strong>Visakhapatnam</strong> with instant GPS & geo-tagging.
           </p>
-
         </div>
-
-        <span className="badge-tag">
-          Geo-Tagged Submission
-        </span>
-
+        <span className="badge-tag">Visakhapatnam Civic Portal</span>
       </div>
 
-      <div className="dash-card">
-
-        {/* ERROR */}
-
-        {errorMessage && (
-          <div
-            className="error-alert-box"
-            style={{
-              marginBottom: '1.5rem'
-            }}
-          >
-            <AlertCircle size={18} />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-
-          {/* ISSUE INFORMATION */}
-
-          <div className="form-section-title">
-            <PlusCircle
-              size={20}
-              className="gradient-text"
-            />
-            1. Issue Information
+      {/* SUCCESS CONFIRMATION CARD */}
+      {submittedIssue ? (
+        <div className="dash-card" style={{ textAlign: 'center', padding: '3rem 2rem', background: '#ffffff', border: '1px solid #e2e8f0' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+            <CheckCircle2 size={36} />
           </div>
 
-          <div
-            className="dash-two-col"
-            style={{
-              gridTemplateColumns:
-                '1fr 1fr',
-              gap: '1.5rem'
-            }}
-          >
+          <h2 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
+            Your issue has been reported successfully!
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '520px', margin: '0 auto 1.75rem' }}>
+            Your civic report has been registered with status <strong style={{ color: '#059669' }}>Open</strong> and geo-tagged for community monitoring.
+          </p>
 
-            {/* CATEGORY */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            maxWidth: '480px',
+            margin: '0 auto 2rem',
+            textAlign: 'left'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Issue ID:</span>
+              <code className="id-code">{submittedIssue.id}</code>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Category:</span>
+              <strong style={{ color: '#0f172a' }}>{submittedIssue.category}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Location:</span>
+              <strong style={{ color: '#059669' }}>
+                {submittedIssue.area}, {submittedIssue.village}, Visakhapatnam
+              </strong>
+            </div>
+            {submittedIssue.pincode && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Pincode:</span>
+                <strong style={{ color: '#059669', fontFamily: 'monospace' }}>
+                  📮 {submittedIssue.pincode}
+                </strong>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Priority:</span>
+              <span className={`priority-tag ${submittedIssue.priority.toLowerCase()}`}>
+                {submittedIssue.priority} Priority
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Coordinates:</span>
+              <span style={{ fontFamily: 'monospace', color: '#64748b', fontSize: '0.85rem' }}>
+                {submittedIssue.latitude}, {submittedIssue.longitude}
+              </span>
+            </div>
+          </div>
 
-            <div className="form-group">
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" onClick={() => onNavigate && onNavigate('my-reports')}>
+              <FileText size={18} /> View in My Reports
+            </button>
+            <button className="btn btn-secondary" onClick={() => onNavigate && onNavigate('map')}>
+              <MapIcon size={18} /> View on Community Map
+            </button>
+            <button 
+              className="btn btn-outline" 
+              onClick={() => {
+                setSubmittedIssue(null);
+                setDescription('');
+                setSelectedArea('');
+                setPhotoPreview(null);
+              }}
+            >
+              <PlusCircle size={18} /> Report Another Issue
+            </button>
+          </div>
+        </div>
+      ) : (
 
-              <label className="input-label-bold">
-                Issue Category *
-              </label>
+        /* MAIN REPORT FORM */
+        <div className="dash-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0' }}>
+          
+          {/* Error Alert Banner */}
+          {errorMessage && (
+            <div className="error-alert-box" style={{ marginBottom: '1.5rem' }}>
+              <AlertCircle size={18} className="error-alert-icon" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
-              <select
-                className="form-input"
-                value={category}
-                onChange={(e) =>
-                  setCategory(e.target.value)
-                }
-              >
+          <form onSubmit={handleSubmit}>
+            
+            {/* SECTION 1: ISSUE DETAILS */}
+            <div className="form-section-title" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <PlusCircle size={20} style={{ color: '#059669' }} /> 1. Problem Information
+            </div>
 
-                <option>Road Damage</option>
-                <option>Water Leakage</option>
-                <option>Broken Streetlight</option>
-                <option>Garbage Overflow</option>
-                <option>Drainage Problem</option>
-                <option>Water Supply</option>
-                <option>Electricity Problem</option>
-                <option>Healthcare</option>
-                <option>Transportation</option>
-                <option>Sanitation</option>
-                <option>Other</option>
+            <div className="dash-two-col" style={{ gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+              
+              {/* Category Selection */}
+              <div className="form-group">
+                <label className="input-label-bold">Problem Category *</label>
+                <select 
+                  className="form-input"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                >
+                  {ISSUE_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
 
-              </select>
+              {/* Priority Selection */}
+              <div className="form-group">
+                <label className="input-label-bold">Priority Level *</label>
+                <select 
+                  className="form-input"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  required
+                >
+                  <option value="High">🔴 High Priority (Immediate Danger / Major Disruption)</option>
+                  <option value="Medium">🟠 Medium Priority (Moderate Inconvenience)</option>
+                  <option value="Low">🔵 Low Priority (Minor / General Maintenance)</option>
+                </select>
+              </div>
 
             </div>
 
-            {/* CAMERA */}
-
-            <div className="form-group">
-
-              <label className="input-label-bold">
-                Photo / Camera
-              </label>
-
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  flexWrap: 'wrap'
-                }}
-              >
-
-                {/* CAMERA */}
-
-                <label
-                  htmlFor="camera-input"
-                  className="btn btn-primary"
-                  style={{
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Camera size={18} />
-                  Take Photo
-                </label>
-
-                <input
-                  id="camera-input"
-                  type="file"
+            {/* Photo Upload with capture="environment" for camera on mobile */}
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label className="input-label-bold">Attach Photo (Optional)</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <input 
+                  type="file" 
+                  id="photo-input" 
                   accept="image/*"
                   capture="environment"
                   onChange={handlePhotoUpload}
-                  style={{
-                    display: 'none'
-                  }}
+                  style={{ display: 'none' }}
                 />
-
-                {/* FILE UPLOAD */}
-
-                <label
-                  htmlFor="photo-input"
-                  className="btn btn-secondary"
-                  style={{
-                    cursor: 'pointer'
-                  }}
+                <label 
+                  htmlFor="photo-input" 
+                  className="btn btn-outline" 
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
                 >
-                  <Upload size={18} />
-                  Upload
+                  <Camera size={18} /> {photoPreview ? "Change Photo" : "Take Photo / Upload Image"}
                 </label>
+                {photoPreview && (
+                  <div style={{ width: '64px', height: '64px', borderRadius: '10px', overflow: 'hidden', border: '2px solid #10b981' }}>
+                    <img src={photoPreview} alt="Issue preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
+              </div>
+            </div>
 
-                <input
-                  id="photo-input"
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  style={{
-                    display: 'none'
-                  }}
-                />
+            {/* Description */}
+            <div className="form-group" style={{ marginBottom: '1.75rem' }}>
+              <label className="input-label-bold">Problem Description *</label>
+              <textarea
+                className="form-input"
+                rows="3"
+                placeholder="Describe the problem clearly (e.g. Broken water pipeline leaking onto road near community center...)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+              ></textarea>
+            </div>
 
+            {/* SECTION 2: VISAKHAPATNAM LOCATION & GPS */}
+            <div className="form-section-title" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <MapPin size={20} style={{ color: '#059669' }} /> 2. Location & Geo-Tagging (Visakhapatnam)
+            </div>
+
+            {/* Location Fields Grid */}
+            <div className="dash-two-col" style={{ gridTemplateColumns: '1fr 1fr 1.2fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+              
+              {/* Village / Area */}
+              <div className="form-group">
+                <label className="input-label-bold">Village / Area *</label>
+                <select 
+                  className="form-input"
+                  value={selectedVillage}
+                  onChange={(e) => setSelectedVillage(e.target.value)}
+                  required
+                >
+                  {VISAKHAPATNAM_VILLAGES.map((v) => (
+                    <option key={v} value={v}>📍 {v}</option>
+                  ))}
+                </select>
               </div>
 
-              {photoPreview && (
-                <div
-                  style={{
-                    marginTop: '1rem'
-                  }}
-                >
+              {/* Area / Street */}
+              <div className="form-group">
+                <label className="input-label-bold">Area / Street *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Main Road, School St"
+                  value={selectedArea}
+                  onChange={(e) => setSelectedArea(e.target.value)}
+                  required
+                />
+              </div>
 
-                  <img
-                    src={photoPreview}
-                    alt="Issue preview"
-                    style={{
-                      width: '150px',
-                      height: '110px',
-                      objectFit: 'cover',
-                      borderRadius: '12px',
-                      border:
-                        '1px solid var(--border-color)'
-                    }}
-                  />
+              {/* Pincode Input */}
+              <div className="form-group">
+                <label className="input-label-bold">Pincode (6-digits) *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. 531163"
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                  required
+                />
+              </div>
 
-                </div>
+              {/* District / State */}
+              <div className="form-group">
+                <label className="input-label">District & State</label>
+                <input type="text" className="form-input" value="Visakhapatnam, AP" disabled style={{ background: '#f1f5f9', cursor: 'not-allowed' }} />
+              </div>
+
+            </div>
+
+            {/* Geolocation Button */}
+            <div style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary"
+                onClick={handleGetLocation}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <Navigation size={18} style={{ color: '#059669' }} /> 📍 Use My Current Location
+              </button>
+
+              {geoDetected && (
+                <span style={{ fontSize: '0.86rem', color: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <CheckCircle2 size={16} /> GPS Detected ({latitude}, {longitude})
+                </span>
               )}
-
             </div>
 
-          </div>
+            {geoError && (
+              <div className="info-alert-box" style={{ marginBottom: '1.25rem' }}>
+                <AlertCircle size={18} className="info-alert-icon" />
+                <span>{geoError}</span>
+              </div>
+            )}
 
-          {/* DESCRIPTION */}
+            {/* OPENSTREETMAP LEAFLET INTERACTIVE MAP */}
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label className="input-label-bold" style={{ margin: 0 }}>
+                  Interactive Location Map (Click anywhere on map to pin problem spot)
+                </label>
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  Lat: {latitude}, Lng: {longitude}
+                </span>
+              </div>
 
-          <div
-            className="form-group"
-            style={{
-              marginTop: '1.5rem',
-              marginBottom: '2rem'
-            }}
-          >
+              <div style={{ height: '300px', width: '100%', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                <MapContainer center={[latitude, longitude]} zoom={14} style={{ height: '100%', width: '100%' }}>
+                  <RecenterMap lat={latitude} lng={longitude} />
+                  <MapClickHandler onLocationChange={(lat, lng) => { setLatitude(lat); setLongitude(lng); }} />
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <Marker position={[latitude, longitude]}>
+                    <Popup>
+                      <strong>{category}</strong><br />
+                      {selectedArea || 'Selected Area'}, {selectedVillage}, Visakhapatnam ({pincode})
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              </div>
+            </div>
 
-            <label className="input-label-bold">
-              Describe the Problem *
-            </label>
-
-            <textarea
-              className="form-input"
-              rows="4"
-              placeholder="Example: Deep potholes near school entrance..."
-              value={description}
-              onChange={(e) =>
-                setDescription(e.target.value)
-              }
-            />
-
-          </div>
-
-          {/* LOCATION */}
-
-          <div className="form-section-title">
-
-            <MapPin
-              size={20}
-              className="gradient-text"
-            />
-
-            2. Location & Geo-Tagging
-
-          </div>
-
-          {/* CURRENT LOCATION */}
-
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={handleGetLocation}
-            style={{
-              marginBottom: '1rem'
-            }}
-          >
-
-            <Navigation size={18} />
-
-            Use My Current Location
-
-          </button>
-
-          {geoDetected && (
-            <div
-              className="success-alert-box"
-              style={{
-                marginBottom: '1rem'
-              }}
+            {/* SUBMIT BUTTON */}
+            <button 
+              type="submit" 
+              className="login-green-btn" 
+              disabled={isSubmitting}
+              style={{ width: '100%', padding: '0.95rem', fontSize: '1.05rem' }}
             >
-              <CheckCircle2 size={18} />
+              <PlusCircle size={20} />
+              <span>{isSubmitting ? "Submitting Issue..." : "Submit Issue"}</span>
+            </button>
 
-              Location selected successfully.
-            </div>
-          )}
+          </form>
 
-          {geoError && (
-            <div
-              className="info-alert-box"
-              style={{
-                marginBottom: '1rem'
-              }}
-            >
-              <AlertCircle size={18} />
-
-              {geoError}
-            </div>
-          )}
-
-          {/* DROPDOWNS */}
-
-          <div
-            className="dash-two-col"
-            style={{
-              gridTemplateColumns:
-                'repeat(4, 1fr)',
-              gap: '1rem',
-              marginBottom: '1.5rem'
-            }}
-          >
-
-            {/* STATE */}
-
-            <div>
-
-              <label className="input-label">
-                State *
-              </label>
-
-              <select
-                className="form-input"
-                value={selectedState}
-                onChange={(e) =>
-                  handleStateChange(
-                    e.target.value
-                  )
-                }
-              >
-
-                {stateOptions.map(
-                  (state) => (
-                    <option
-                      key={state}
-                      value={state}
-                    >
-                      {state}
-                    </option>
-                  )
-                )}
-
-              </select>
-
-            </div>
-
-            {/* DISTRICT */}
-
-            <div>
-
-              <label className="input-label">
-                District *
-              </label>
-
-              <select
-                className="form-input"
-                value={selectedDistrict}
-                onChange={(e) =>
-                  handleDistrictChange(
-                    e.target.value
-                  )
-                }
-              >
-
-                {districtOptions.map(
-                  (district) => (
-                    <option
-                      key={district}
-                      value={district}
-                    >
-                      {district}
-                    </option>
-                  )
-                )}
-
-              </select>
-
-            </div>
-
-            {/* VILLAGE */}
-
-            <div>
-
-              <label className="input-label">
-                Village *
-              </label>
-
-              <select
-                className="form-input"
-                value={selectedVillage}
-                onChange={(e) =>
-                  handleVillageChange(
-                    e.target.value
-                  )
-                }
-              >
-
-                {villageOptions.map(
-                  (village) => (
-                    <option
-                      key={village}
-                      value={village}
-                    >
-                      {village}
-                    </option>
-                  )
-                )}
-
-              </select>
-
-            </div>
-
-            {/* AREA */}
-
-            <div>
-
-              <label className="input-label">
-                Area / Street *
-              </label>
-
-              <select
-                className="form-input"
-                value={selectedArea}
-                onChange={(e) =>
-                  setSelectedArea(
-                    e.target.value
-                  )
-                }
-              >
-
-                {areaOptions.map(
-                  (area) => (
-                    <option
-                      key={area}
-                      value={area}
-                    >
-                      {area}
-                    </option>
-                  )
-                )}
-
-              </select>
-
-            </div>
-
-          </div>
-
-          {/* REAL OPENSTREETMAP */}
-
-          <div
-            style={{
-              marginBottom: '1.5rem'
-            }}
-          >
-
-            <label className="input-label-bold">
-              Interactive Location Map
-            </label>
-
-            <p
-              style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.85rem',
-                marginBottom: '0.5rem'
-              }}
-            >
-              Click anywhere on the map to place
-              the issue marker.
-            </p>
-
-            <div
-              style={{
-                height: '350px',
-                width: '100%',
-                borderRadius: '16px',
-                overflow: 'hidden',
-                border:
-                  '1px solid var(--border-color)'
-              }}
-            >
-
-              <MapContainer
-                center={[
-                  latitude,
-                  longitude
-                ]}
-                zoom={14}
-                style={{
-                  height: '100%',
-                  width: '100%'
-                }}
-              >
-
-                <TileLayer
-                  attribution="&copy; OpenStreetMap contributors"
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-
-                <MapClickHandler
-                  onLocationChange={
-                    handleMapLocationChange
-                  }
-                />
-
-                <Marker
-                  position={[
-                    latitude,
-                    longitude
-                  ]}
-                >
-
-                  <Popup>
-
-                    <strong>
-                      {category}
-                    </strong>
-
-                    <br />
-
-                    {selectedArea},{' '}
-                    {selectedVillage}
-
-                    <br />
-
-                    Lat: {latitude}
-
-                    <br />
-
-                    Lng: {longitude}
-
-                  </Popup>
-
-                </Marker>
-
-              </MapContainer>
-
-            </div>
-
-          </div>
-
-          {/* LOCATION INFO */}
-
-          <div
-            style={{
-              background:
-                'rgba(20,184,166,0.08)',
-              border:
-                '1px solid var(--border-color)',
-              borderRadius: '12px',
-              padding: '1rem',
-              marginBottom: '2rem'
-            }}
-          >
-
-            <strong>
-              Selected Location:
-            </strong>
-
-            <div>
-              {selectedState} →{' '}
-              {selectedDistrict} →{' '}
-              {selectedVillage} →{' '}
-              {selectedArea}
-            </div>
-
-            <div
-              style={{
-                marginTop: '0.5rem',
-                fontFamily: 'monospace',
-                color:
-                  'var(--primary-teal)'
-              }}
-            >
-              Latitude: {latitude}
-              <br />
-              Longitude: {longitude}
-            </div>
-
-          </div>
-
-          {/* SUBMIT */}
-
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={isSubmitting}
-            style={{
-              width: '100%',
-              justifyContent: 'center',
-              padding: '1rem',
-              fontSize: '1.05rem'
-            }}
-          >
-
-            <PlusCircle size={20} />
-
-            {isSubmitting
-              ? 'Submitting Issue...'
-              : 'Submit Issue'}
-
-          </button>
-
-        </form>
-
-      </div>
+        </div>
+      )}
 
     </div>
   );

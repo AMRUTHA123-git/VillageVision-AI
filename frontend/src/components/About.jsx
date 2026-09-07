@@ -33,23 +33,23 @@ export default function About() {
           </div>
 
           <div className="about-card-box">
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--primary-teal)' }}>
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '1rem', color: '#047857' }}>
               Project Vision & Impact
             </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: '1.7' }}>
+            <p style={{ color: '#334155', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: '1.7' }}>
               "To transform rural communities into smart, connected, and self-sustaining ecosystems where every citizen's voice is heard and every public issue is addressed with speed and accountability."
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                <Zap size={22} style={{ color: 'var(--primary-emerald)', marginBottom: '0.5rem' }} />
-                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Instant Triage</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Automated department routing</div>
+              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+                <Zap size={22} style={{ color: '#059669', marginBottom: '0.5rem' }} />
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>Instant Triage</div>
+                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Automated department routing</div>
               </div>
-              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                <ShieldCheck size={22} style={{ color: 'var(--primary-teal)', marginBottom: '0.5rem' }} />
-                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Audit Trail</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Immutable resolution logs</div>
+              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+                <ShieldCheck size={22} style={{ color: '#0284c7', marginBottom: '0.5rem' }} />
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>Audit Trail</div>
+                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Immutable resolution logs</div>
               </div>
             </div>
           </div>

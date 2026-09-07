@@ -6,30 +6,45 @@ import About from './components/About';
 import Footer from './components/Footer';
 import LoginPage from './components/LoginPage';
 import SignUpPage from './components/SignUpPage';
+import ForgotPasswordPage from './components/ForgotPasswordPage';
+import ResetPasswordPage from './components/ResetPasswordPage';
 
-// Import 6 Role-Based Dashboards
+// Import Role-Based Dashboards
 import CitizenDashboard from './components/dashboards/CitizenDashboard';
 import AuthorityDashboard from './components/dashboards/AuthorityDashboard';
 import NGODashboard from './components/dashboards/NGODashboard';
-import VolunteerDashboard from './components/dashboards/VolunteerDashboard';
-import DonorDashboard from './components/dashboards/DonorDashboard';
-import BusinessDashboard from './components/dashboards/BusinessDashboard';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [user, setUser] = useState(null);
   const [successNotice, setSuccessNotice] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [loginPrefill, setLoginPrefill] = useState({ email: '', role: 'Citizen' });
 
-  // Restore authenticated user session if available
+  // Detect ?token=... or ?resetToken=... on mount and popstate
   useEffect(() => {
-    const savedUser = localStorage.getItem('villagevision_user');
-    if (savedUser) {
+    const checkUrlParams = () => {
       try {
-        setUser(JSON.parse(savedUser));
+        if (typeof window !== 'undefined' && window.location) {
+          const params = new URLSearchParams(window.location.search);
+          const token = params.get('token') || params.get('resetToken');
+          const view = params.get('view');
+
+          if (token) {
+            setResetToken(token);
+            setCurrentView('reset-password');
+          } else if (view === 'forgot-password') {
+            setCurrentView('forgot-password');
+          }
+        }
       } catch (e) {
-        console.error('Failed to parse stored session');
+        console.error('Failed to parse URL query params:', e);
       }
-    }
+    };
+
+    checkUrlParams();
+    window.addEventListener('popstate', checkUrlParams);
+    return () => window.removeEventListener('popstate', checkUrlParams);
   }, []);
 
   const handleLoginSuccess = (userData) => {
@@ -61,23 +76,14 @@ export default function App() {
     const role = user.role || 'Citizen';
 
     switch (role) {
+      case 'Admin':
       case 'Government Authority':
+      case 'NGO / Government':
         return <AuthorityDashboard user={user} onLogout={handleLogout} />;
       case 'NGO':
-        return <NGODashboard user={user} onLogout={handleLogout} />;
       case 'Volunteer':
-        return <VolunteerDashboard user={user} onLogout={handleLogout} />;
       case 'NGO / Volunteer':
-        // Check if user is a individual volunteer or NGO organization
-        if (user.fullName?.toLowerCase().includes('volunteer') || user.identifier?.toLowerCase().includes('volunteer')) {
-          return <VolunteerDashboard user={user} onLogout={handleLogout} />;
-        }
         return <NGODashboard user={user} onLogout={handleLogout} />;
-      case 'Donor':
-        return <DonorDashboard user={user} onLogout={handleLogout} />;
-      case 'Business / Entrepreneur':
-      case 'Business':
-        return <BusinessDashboard user={user} onLogout={handleLogout} />;
       case 'Citizen':
       default:
         return <CitizenDashboard user={user} onLogout={handleLogout} />;
@@ -89,38 +95,65 @@ export default function App() {
       {/* If user is logged in, show their role-based dashboard */}
       {user ? (
         renderDashboardForRole()
+      ) : currentView === 'login' ? (
+        /* Standalone Focused Fullscreen Login Page */
+        <LoginPage 
+          onBackToHome={() => { setSuccessNotice(''); setCurrentView('landing'); }}
+          onNavigateToSignUp={() => { setSuccessNotice(''); setCurrentView('signup'); }}
+          onNavigateToForgotPassword={() => { setSuccessNotice(''); setCurrentView('forgot-password'); }}
+          onLoginSuccess={handleLoginSuccess}
+          successNotice={successNotice}
+          initialEmail={loginPrefill.email}
+          initialRole={loginPrefill.role}
+        />
+      ) : currentView === 'signup' ? (
+        /* Standalone Focused Sign Up Page */
+        <SignUpPage 
+          onNavigateToLogin={() => { setSuccessNotice(''); setCurrentView('login'); }}
+          onSignUpSuccess={handleSignUpSuccess}
+        />
+      ) : currentView === 'forgot-password' ? (
+        /* Standalone Focused Forgot Password Page */
+        <ForgotPasswordPage 
+          onBackToLogin={() => { setSuccessNotice(''); setCurrentView('login'); }}
+          onBackToHome={() => { setSuccessNotice(''); setCurrentView('landing'); }}
+          onOpenResetLink={(token) => {
+            setResetToken(token);
+            setCurrentView('reset-password');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      ) : currentView === 'reset-password' ? (
+        /* Standalone Focused Reset Password Page */
+        <ResetPasswordPage 
+          token={resetToken}
+          onResetSuccess={(msg, email, role) => {
+            setSuccessNotice(msg);
+            if (email) setLoginPrefill({ email, role: role || 'Citizen' });
+            setCurrentView('login');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onNavigateToLogin={() => { setSuccessNotice(''); setCurrentView('login'); }}
+          onBackToHome={() => { setSuccessNotice(''); setCurrentView('landing'); }}
+          onRequestNewLink={() => { setSuccessNotice(''); setCurrentView('forgot-password'); }}
+        />
       ) : (
+        /* Landing Page with Navbar, Hero, Features, About, and Footer */
         <>
-          {/* Show Navbar on Landing Page */}
           <Navbar 
             onNavigateToLogin={() => { setSuccessNotice(''); setCurrentView('login'); }}
             onNavigateToHome={() => { setSuccessNotice(''); setCurrentView('landing'); }}
             currentUser={user}
           />
-
-          {currentView === 'login' ? (
-            <LoginPage 
-              onBackToHome={() => { setSuccessNotice(''); setCurrentView('landing'); }}
-              onNavigateToSignUp={() => { setSuccessNotice(''); setCurrentView('signup'); }}
-              onLoginSuccess={handleLoginSuccess}
-              successNotice={successNotice}
-            />
-          ) : currentView === 'signup' ? (
-            <SignUpPage 
-              onNavigateToLogin={() => { setSuccessNotice(''); setCurrentView('login'); }}
-              onSignUpSuccess={handleSignUpSuccess}
-            />
-          ) : (
-            <main>
-              <Hero onNavigateToLogin={() => { setSuccessNotice(''); setCurrentView('login'); }} />
-              <Features />
-              <About />
-            </main>
-          )}
-
+          <main>
+            <Hero onNavigateToLogin={() => { setSuccessNotice(''); setCurrentView('login'); }} />
+            <Features />
+            <About />
+          </main>
           <Footer />
         </>
       )}
     </div>
   );
 }
+

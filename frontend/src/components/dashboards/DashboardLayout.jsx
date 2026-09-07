@@ -101,13 +101,18 @@ export default function DashboardLayout({
             >
               <Menu size={22} />
             </button>
-            <h2 className="topbar-greeting">
-              Welcome back, <span className="gradient-text">{user?.fullName || 'User'}</span> 👋
-            </h2>
+            <div>
+              <h2 className="topbar-greeting">
+                Welcome back, <span className="gradient-text">{user?.fullName || 'Citizen'}</span> 👋
+              </h2>
+              <p className="topbar-subtitle" style={{ fontSize: '0.82rem', color: '#64748b', margin: 0, fontWeight: 500 }}>
+                Help make your community better.
+              </p>
+            </div>
           </div>
 
           <div className="topbar-right">
-            {/* Locked Role Badge */}
+            {/* Role Badge */}
             <div className="role-security-pill">
               <Shield size={14} className="pill-icon" />
               <span>{user?.role || 'Citizen'}</span>

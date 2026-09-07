@@ -1,20 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Search, Plus, CheckCircle2, X, AlertCircle } from 'lucide-react';
+import {
+  getAllStates,
+  getDistricts,
+  getVillages,
+  addCustomState,
+  addCustomDistrict,
+  addCustomVillage,
+} from '../utils/locationManager.js';
 
 /**
  * SearchableDropdown — Searchable, A-Z sorted dropdown with "+ Add" option.
- *
- * Props:
- *  label         — Field label
- *  options       — string[]
- *  value         — currently selected value
- *  onChange      — (value: string) => void
- *  placeholder   — placeholder text when nothing selected
- *  disabled      — if true, shows disabled state with disabledText
- *  disabledText  — e.g. "Select State first"
- *  onAdd         — if provided, shows "+ Add" option and calls onAdd(name: string): {success, message}
- *  addLabel      — e.g. "+ Add District"
- *  required      — whether the field is required
  */
 export function SearchableDropdown({
   label,
@@ -81,7 +77,7 @@ export function SearchableDropdown({
       setTimeout(() => {
         setShowAddModal(false);
         setAddSuccess('');
-      }, 900);
+      }, 700);
     } else {
       setAddError(result.message || 'Failed to add location.');
     }
@@ -151,6 +147,7 @@ export function SearchableDropdown({
           {/* Add Option */}
           {onAdd && (
             <button
+              type="button"
               className="dropdown-add-btn"
               onClick={() => { setShowAddModal(true); setOpen(false); setSearch(''); setAddError(''); setAddValue(''); }}
             >
@@ -166,7 +163,7 @@ export function SearchableDropdown({
           <div className="add-location-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">{addLabel}</h3>
-              <button className="modal-close-btn" onClick={() => setShowAddModal(false)}>
+              <button type="button" className="modal-close-btn" onClick={() => setShowAddModal(false)}>
                 <X size={18} />
               </button>
             </div>
@@ -196,8 +193,8 @@ export function SearchableDropdown({
             </div>
 
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleAddSubmit}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddModal(false)}>Cancel</button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={handleAddSubmit}>
                 <Plus size={16} /> Add
               </button>
             </div>
@@ -208,25 +205,9 @@ export function SearchableDropdown({
   );
 }
 
-
 /**
  * LocationPicker — Full India-wide State → District → Village → Area picker.
- *
- * Props:
- *   state, district, village, area — current values
- *   onStateChange, onDistrictChange, onVillageChange, onAreaChange — callbacks
- *   allowAdd — if true, show "+ Add" options (for report issue). Default true.
- *   required — mark fields as required
  */
-import {
-  getAllStates,
-  getDistricts,
-  getVillages,
-  addCustomState,
-  addCustomDistrict,
-  addCustomVillage,
-} from '../utils/locationManager.js';
-
 export default function LocationPicker({
   state = '',
   district = '',
@@ -239,7 +220,6 @@ export default function LocationPicker({
   allowAdd = true,
   required = true,
 }) {
-  // Refresh state list when custom locations change
   const [stateList, setStateList] = useState(getAllStates());
 
   const refreshStates = () => setStateList(getAllStates());
@@ -277,7 +257,7 @@ export default function LocationPicker({
   const handleAddDistrict = (name) => {
     const result = addCustomDistrict(state, name);
     if (result.success) {
-      refreshStates(); // triggers re-render so getDistricts is fresh
+      refreshStates();
       setTimeout(() => handleDistrictChange(name), 0);
     }
     return result;
@@ -294,7 +274,6 @@ export default function LocationPicker({
 
   return (
     <div className="location-picker-grid">
-
       {/* STATE */}
       <SearchableDropdown
         label="State / Union Territory"
@@ -335,7 +314,7 @@ export default function LocationPicker({
         required={required}
       />
 
-      {/* AREA / STREET — free text */}
+      {/* AREA / STREET */}
       <div className="form-group">
         <label className="input-label-bold">
           Area / Street {required && <span style={{ color: '#f87171' }}>*</span>}
@@ -348,7 +327,6 @@ export default function LocationPicker({
           onChange={e => onAreaChange(e.target.value)}
         />
       </div>
-
     </div>
   );
 }

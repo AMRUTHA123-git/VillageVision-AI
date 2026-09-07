@@ -1,752 +1,212 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Filter,
-  RotateCcw,
-  MapPin,
-  Info
+import { 
+  Map as MapIcon, 
+  MapPin, 
+  Info, 
+  Layers,
+  Sparkles,
+  Filter
 } from 'lucide-react';
-
-import {
-  getStoredIssues,
-  filterIssues,
-  LOCATION_HIERARCHY,
-  ISSUE_CATEGORIES
-} from '../utils/issueData';
+import { getStoredIssues, filterIssues, VISAKHAPATNAM_VILLAGES } from '../utils/issueData';
 
 import 'leaflet/dist/leaflet.css';
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  useMap
-} from 'react-leaflet';
-
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
-// Fix Leaflet default icons
 delete L.Icon.Default.prototype._getIconUrl;
-
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl:
-    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl:
-    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
-
-// ---------------------------------------------
-// COLOURED MARKERS
-// ---------------------------------------------
-
+// Priority-colored map marker helper
 const createPriorityIcon = (priority) => {
-
-  let color = '#facc15';
-
+  let color = '#eab308'; // medium yellow/orange
   if (priority === 'High') {
-    color = '#ef4444';
-  }
-
-  if (priority === 'Medium') {
-    color = '#facc15';
-  }
-
-  if (priority === 'Low') {
-    color = '#22c55e';
+    color = '#ef4444'; // red
+  } else if (priority === 'Low') {
+    color = '#10b981'; // green
   }
 
   return L.divIcon({
     className: 'custom-priority-marker',
-
     html: `
       <div style="
-        width: 30px;
-        height: 30px;
+        width: 28px;
+        height: 28px;
         background: ${color};
-        border: 3px solid white;
+        border: 2px solid #ffffff;
         border-radius: 50% 50% 50% 0;
         transform: rotate(-45deg);
-        box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         position: relative;
       ">
         <div style="
-          width: 9px;
-          height: 9px;
+          width: 8px;
+          height: 8px;
           background: white;
           border-radius: 50%;
           position: absolute;
-          top: 7px;
-          left: 7px;
+          top: 6px;
+          left: 6px;
         "></div>
       </div>
     `,
-
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
-    popupAnchor: [0, -30]
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -28]
   });
 };
 
-
-// ---------------------------------------------
-// MAP CENTER COMPONENT
-// ---------------------------------------------
-
-function MapController({ issues }) {
-
+function MapAutoCenter({ issues }) {
   const map = useMap();
-
   useEffect(() => {
-
-    if (!issues.length) return;
-
-    const validIssues = issues.filter(
-      issue =>
-        Number.isFinite(Number(issue.latitude)) &&
-        Number.isFinite(Number(issue.longitude))
-    );
-
-    if (!validIssues.length) return;
-
-    const bounds = L.latLngBounds(
-      validIssues.map(issue => [
-        Number(issue.latitude),
-        Number(issue.longitude)
-      ])
-    );
-
-    map.fitBounds(bounds, {
-      padding: [50, 50],
-      maxZoom: 15
-    });
-
+    if (map && issues && issues.length > 0) {
+      const valid = issues.filter(i => i.latitude && i.longitude && Number.isFinite(i.latitude) && Number.isFinite(i.longitude));
+      if (valid.length > 0) {
+        try {
+          if (valid.length === 1) {
+            map.setView([valid[0].latitude, valid[0].longitude], 14, { animate: false });
+          } else {
+            const bounds = L.latLngBounds(valid.map(i => [i.latitude, i.longitude]));
+            map.fitBounds(bounds, { padding: [40, 40], animate: false });
+          }
+        } catch (e) {
+          // Safe fallback
+        }
+      }
+    }
   }, [issues, map]);
-
   return null;
 }
 
-
-// ---------------------------------------------
-// MAIN COMPONENT
-// ---------------------------------------------
-
 export default function CommunityMapPage() {
-
   const [issues, setIssues] = useState([]);
+  const [selectedVillage, setSelectedVillage] = useState('All Villages / Areas');
 
-  const [selectedState, setSelectedState] = useState('');
-  const [selectedDistrict, setSelectedDistrict] = useState('');
-  const [selectedVillage, setSelectedVillage] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [selectedPriority, setSelectedPriority] = useState('');
-
-  // Load issues
   useEffect(() => {
-
-    const loadIssues = () => {
-      setIssues(getStoredIssues());
-    };
-
-    loadIssues();
-
-    // Refresh map whenever another page adds/updates an issue
-    const interval = setInterval(loadIssues, 1000);
-
-    return () => clearInterval(interval);
-
+    setIssues(getStoredIssues());
   }, []);
 
+  // Filter out Resolved issues from active map markers
+  const activeIssues = issues.filter(i => i.status !== 'Resolved');
 
-  // ---------------------------------------------
-  // LOCATION FILTERS
-  // ---------------------------------------------
-
-  const stateOptions =
-    Object.keys(LOCATION_HIERARCHY || {})
-      .filter(state => state !== 'Other');
-
-
-  const districtOptions =
-    selectedState
-      ? Object.keys(
-          LOCATION_HIERARCHY[selectedState] || {}
-        ).filter(district => district !== 'Other')
-      : [];
-
-
-  const villageOptions =
-    selectedState && selectedDistrict
-      ? (
-          Array.isArray(
-            LOCATION_HIERARCHY[selectedState]?.[selectedDistrict]
-          )
-            ? LOCATION_HIERARCHY[selectedState][selectedDistrict]
-            : Object.keys(
-                LOCATION_HIERARCHY[selectedState]?.[selectedDistrict] || {}
-              )
-        ).filter(village => village !== 'Other')
-      : [];
-
-
-  // ---------------------------------------------
-  // CLEAR FILTERS
-  // ---------------------------------------------
-
-  const handleClearFilters = () => {
-
-    setSelectedState('');
-    setSelectedDistrict('');
-    setSelectedVillage('');
-    setSelectedCategory('');
-    setSelectedStatus('');
-    setSelectedPriority('');
-
-  };
-
-
-  // ---------------------------------------------
-  // FILTER ISSUES
-  // ---------------------------------------------
-
-  const filteredIssues = filterIssues(
-    issues,
-    {
-      state: selectedState,
-      district: selectedDistrict,
-      village: selectedVillage,
-      category: selectedCategory,
-      status: selectedStatus,
-      priority: selectedPriority
+  const filteredIssues = activeIssues.filter(issue => {
+    if (selectedVillage && selectedVillage !== 'All Villages / Areas' && issue.village !== selectedVillage) {
+      return false;
     }
-  ).filter(issue => issue.status !== 'Resolved');
+    return true;
+  });
 
-
-  // ---------------------------------------------
-  // DEFAULT MAP LOCATION
-  // ---------------------------------------------
-
-  const defaultCenter = [17.3542, 82.5488];
-
+  const mapCenter = [17.8912, 83.4542]; // Visakhapatnam center fallback
 
   return (
-
     <div className="community-map-wrapper">
-
+      
       {/* HEADER */}
-
-      <div
-        className="dash-card-header"
-        style={{ marginBottom: '1.5rem' }}
-      >
-
+      <div className="dash-card-header" style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-
-          <h1
-            className="hero-title"
-            style={{
-              fontSize: '2rem',
-              textAlign: 'left',
-              marginBottom: '0.25rem'
-            }}
-          >
-            Real-Time{' '}
-            <span className="gradient-text">
-              Community Map
-            </span>
+          <h1 className="hero-title" style={{ fontSize: '1.85rem', textAlign: 'left', marginBottom: '0.25rem', color: '#0f172a' }}>
+            Interactive <span className="gradient-text">Community Map</span>
           </h1>
-
-          <p
-            style={{
-              color: 'var(--text-muted)',
-              fontSize: '0.98rem'
-            }}
-          >
-            View community problems geographically with
-            colour-coded priority markers.
+          <p style={{ color: '#64748b', fontSize: '0.95rem', margin: 0 }}>
+            Spatial visualization of active geo-tagged community issues in Visakhapatnam.
           </p>
-
         </div>
 
-        <span className="badge-tag">
-          {filteredIssues.length} Active Issues
-        </span>
-
-      </div>
-
-
-      {/* LEGEND */}
-
-      <div
-        className="dash-card"
-        style={{
-          marginBottom: '1.25rem',
-          display: 'flex',
-          gap: '1.5rem',
+        {/* Fixed Location Badge */}
+        <div style={{
+          background: '#ecfdf5',
+          border: '1.5px solid #a7f3d0',
+          borderRadius: '9999px',
+          padding: '0.5rem 1.15rem',
+          display: 'inline-flex',
           alignItems: 'center',
-          flexWrap: 'wrap'
-        }}
-      >
-
-        <strong>
-          Priority:
-        </strong>
-
-        <span>
-          🔴 High
-        </span>
-
-        <span>
-          🟡 Medium
-        </span>
-
-        <span>
-          🟢 Low
-        </span>
-
-        <span style={{ color: 'var(--text-muted)' }}>
-          Resolved issues are automatically removed from the map.
-        </span>
-
+          gap: '0.45rem',
+          color: '#047857',
+          fontWeight: 800,
+          fontSize: '0.9rem'
+        }}>
+          <MapPin size={16} style={{ color: '#059669' }} />
+          <span>📍 Visakhapatnam, Andhra Pradesh</span>
+        </div>
       </div>
 
-
-      {/* FILTER BAR */}
-
-      <div
-        className="dash-card"
-        style={{ marginBottom: '1.5rem' }}
-      >
-
-        <div
-          className="dash-card-header"
-          style={{ marginBottom: '1rem' }}
-        >
-
-          <h3>
-            <Filter
-              size={18}
-              style={{
-                verticalAlign: 'middle',
-                marginRight: '6px'
-              }}
-            />
-
-            Map Filters
-          </h3>
-
-          <button
-            className="btn btn-outline btn-sm"
-            onClick={handleClearFilters}
+      {/* MAP FILTER CONTROLS */}
+      <div className="dash-card" style={{ marginBottom: '1.5rem', padding: '1.25rem 1.5rem', background: '#ffffff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <label className="input-label-bold" style={{ margin: 0 }}>Select Village / Area:</label>
+          <select 
+            className="form-input" 
+            value={selectedVillage} 
+            onChange={(e) => setSelectedVillage(e.target.value)}
+            style={{ minWidth: '220px', background: '#f8fafc' }}
           >
-
-            <RotateCcw size={14} />
-
-            Clear Filters
-
-          </button>
-
+            <option value="All Villages / Areas">📍 All Villages / Areas</option>
+            {VISAKHAPATNAM_VILLAGES.map(v => <option key={v} value={v}>📍 {v}</option>)}
+          </select>
         </div>
 
-
-        <div
-          className="dash-two-col"
-          style={{
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(160px, 1fr))',
-            gap: '0.75rem'
-          }}
-        >
-
-          {/* STATE */}
-
-          <div>
-
-            <label className="input-label">
-              State
-            </label>
-
-            <select
-              className="form-input"
-              value={selectedState}
-              onChange={(e) => {
-
-                setSelectedState(e.target.value);
-                setSelectedDistrict('');
-                setSelectedVillage('');
-
-              }}
-            >
-
-              <option value="">
-                All States
-              </option>
-
-              {stateOptions.map(state => (
-
-                <option
-                  key={state}
-                  value={state}
-                >
-                  {state}
-                </option>
-
-              ))}
-
-            </select>
-
-          </div>
-
-
-          {/* DISTRICT */}
-
-          <div>
-
-            <label className="input-label">
-              District
-            </label>
-
-            <select
-              className="form-input"
-              value={selectedDistrict}
-              disabled={!selectedState}
-              onChange={(e) => {
-
-                setSelectedDistrict(e.target.value);
-                setSelectedVillage('');
-
-              }}
-            >
-
-              <option value="">
-                All Districts
-              </option>
-
-              {districtOptions.map(district => (
-
-                <option
-                  key={district}
-                  value={district}
-                >
-                  {district}
-                </option>
-
-              ))}
-
-            </select>
-
-          </div>
-
-
-          {/* VILLAGE */}
-
-          <div>
-
-            <label className="input-label">
-              Village
-            </label>
-
-            <select
-              className="form-input"
-              value={selectedVillage}
-              disabled={!selectedDistrict}
-              onChange={(e) =>
-                setSelectedVillage(e.target.value)
-              }
-            >
-
-              <option value="">
-                All Villages
-              </option>
-
-              {villageOptions.map(village => (
-
-                <option
-                  key={village}
-                  value={village}
-                >
-                  {village}
-                </option>
-
-              ))}
-
-            </select>
-
-          </div>
-
-
-          {/* CATEGORY */}
-
-          <div>
-
-            <label className="input-label">
-              Category
-            </label>
-
-            <select
-              className="form-input"
-              value={selectedCategory}
-              onChange={(e) =>
-                setSelectedCategory(e.target.value)
-              }
-            >
-
-              <option value="">
-                All Categories
-              </option>
-
-              {ISSUE_CATEGORIES.map(category => (
-
-                <option
-                  key={category}
-                  value={category}
-                >
-                  {category}
-                </option>
-
-              ))}
-
-            </select>
-
-          </div>
-
-
-          {/* STATUS */}
-
-          <div>
-
-            <label className="input-label">
-              Status
-            </label>
-
-            <select
-              className="form-input"
-              value={selectedStatus}
-              onChange={(e) =>
-                setSelectedStatus(e.target.value)
-              }
-            >
-
-              <option value="">
-                All Statuses
-              </option>
-
-              <option value="Open">
-                Open
-              </option>
-
-              <option value="Verified">
-                Verified
-              </option>
-
-              <option value="Assigned">
-                Assigned
-              </option>
-
-              <option value="In Progress">
-                In Progress
-              </option>
-
-            </select>
-
-          </div>
-
-
-          {/* PRIORITY */}
-
-          <div>
-
-            <label className="input-label">
-              Priority
-            </label>
-
-            <select
-              className="form-input"
-              value={selectedPriority}
-              onChange={(e) =>
-                setSelectedPriority(e.target.value)
-              }
-            >
-
-              <option value="">
-                All Priorities
-              </option>
-
-              <option value="High">
-                High
-              </option>
-
-              <option value="Medium">
-                Medium
-              </option>
-
-              <option value="Low">
-                Low
-              </option>
-
-            </select>
-
-          </div>
-
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.85rem', fontWeight: 700 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#dc2626' }}>
+            🔴 High Priority
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#ca8a04' }}>
+            🟡 Medium Priority
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#16a34a' }}>
+            🟢 Low Priority
+          </span>
         </div>
-
       </div>
 
-
-      {/* REAL OPENSTREETMAP */}
-
-      <div
-        className="dash-card"
-        style={{
-          padding: 0,
-          overflow: 'hidden',
-          height: '550px',
-          marginBottom: '2rem'
-        }}
-      >
-
-        <MapContainer
-          center={defaultCenter}
-          zoom={13}
-          scrollWheelZoom={true}
-          style={{
-            height: '100%',
-            width: '100%'
-          }}
-        >
-
+      {/* LEAFLET INTERACTIVE MAP CONTAINER */}
+      <div className="dash-card" style={{ padding: 0, overflow: 'hidden', height: '520px', marginBottom: '2rem', border: '1.5px solid #e2e8f0', borderRadius: '18px' }}>
+        <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
+          <MapAutoCenter issues={filteredIssues} />
           <TileLayer
-            attribution="&copy; OpenStreetMap contributors"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-
-
-          <MapController
-            issues={filteredIssues}
-          />
-
-
-          {/* ISSUE MARKERS */}
-
-          {filteredIssues.map(issue => (
-
-            <Marker
-              key={issue.id}
-              position={[
-                Number(issue.latitude),
-                Number(issue.longitude)
-              ]}
+          {filteredIssues.map((issue) => (
+            <Marker 
+              key={issue.id} 
+              position={[issue.latitude, issue.longitude]}
               icon={createPriorityIcon(issue.priority)}
             >
-
               <Popup>
-
-                <div
-                  style={{
-                    minWidth: '220px'
-                  }}
-                >
-
-                  <strong>
-                    {issue.id}
-                  </strong>
-
-                  <h3
-                    style={{
-                      margin: '5px 0'
-                    }}
-                  >
-                    {issue.category}
-                  </h3>
-
-                  <p>
-                    📍 {issue.area},
-                    {' '}
-                    {issue.village}
+                <div style={{ padding: '0.25rem', minWidth: '180px' }}>
+                  <code style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>{issue.id}</code>
+                  <h4 style={{ margin: '0.2rem 0', fontSize: '0.95rem', color: '#0f172a' }}>{issue.category}</h4>
+                  <p style={{ margin: '0.2rem 0', fontSize: '0.82rem', color: '#475569' }}>
+                    <strong>{issue.area}</strong>, {issue.village}<br />
+                    Visakhapatnam ({issue.pincode})<br />
+                    Priority: <strong>{issue.priority}</strong> &bull; Status: <strong>{issue.status}</strong>
                   </p>
-
-                  <p>
-                    <strong>
-                      Priority:
-                    </strong>{' '}
-                    {issue.priority}
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', margin: '0.35rem 0 0' }}>
+                    "{issue.description.substring(0, 75)}..."
                   </p>
-
-                  <p>
-                    <strong>
-                      Status:
-                    </strong>{' '}
-                    {issue.status}
-                  </p>
-
-                  <p
-                    style={{
-                      color: '#64748b'
-                    }}
-                  >
-                    {issue.description}
-                  </p>
-
                 </div>
-
               </Popup>
-
             </Marker>
-
           ))}
-
         </MapContainer>
-
       </div>
 
-
-      {/* INFORMATION */}
-
-      <div
-        className="dash-card"
-        style={{
-          background:
-            'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(20,184,166,0.05))'
-        }}
-      >
-
-        <h3>
-
-          <Info
-            size={20}
-            style={{
-              verticalAlign: 'middle',
-              marginRight: '6px'
-            }}
-          />
-
-          Geo-Mapping & AI
-
-        </h3>
-
-        <p
-          style={{
-            color: 'var(--text-light)',
-            lineHeight: '1.7'
-          }}
-        >
-
-          VillageVision AI uses geo-tagged reports to
-          visualize community problems on a real map.
-          High-priority problems appear in red, medium
-          priority problems in yellow and low-priority
-          problems in green. Once an issue is resolved,
-          its marker automatically disappears from the
-          active map.
-
+      {/* GEO-MAPPING EXPLANATION CARD */}
+      <div className="dash-card" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
+        <div className="dash-card-header" style={{ marginBottom: '0.75rem' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0f172a', fontWeight: 800 }}>
+            <Info size={20} style={{ color: '#059669' }} /> Why Geo-Mapping?
+          </h3>
+          <span className="badge-tag">Spatial Analytics</span>
+        </div>
+        <p style={{ color: '#475569', fontSize: '0.92rem', lineHeight: '1.7', margin: 0 }}>
+          Geo-mapping helps identify where community problems are concentrated. By combining issue categories with Visakhapatnam locality coordinates, VillageVision AI highlights problem clusters and supports rapid authority response.
         </p>
-
       </div>
 
     </div>
-
   );
-
 }

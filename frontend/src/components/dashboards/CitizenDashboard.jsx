@@ -13,14 +13,20 @@ import {
   FileText, 
   Layers, 
   Map, 
-  Sparkles, 
   TrendingUp, 
   Bell, 
   User, 
   CheckCircle2, 
   Clock, 
   AlertCircle,
-  MapPin
+  MapPin,
+  ArrowRight,
+  Store,
+  Bus,
+  HeartPulse,
+  Droplets,
+  Construction,
+  Sparkles
 } from 'lucide-react';
 import { getStoredIssues } from '../../utils/issueData';
 
@@ -32,6 +38,7 @@ export default function CitizenDashboard({ user, onLogout }) {
     setIssues(getStoredIssues());
   }, [activeTab]);
 
+  // Clean, Compact Sidebar Options for Citizen
   const sidebarItems = [
     { id: 'home', label: 'Home', icon: <Home size={18} /> },
     { id: 'report-issue', label: 'Report Issue', icon: <PlusCircle size={18} /> },
@@ -43,6 +50,12 @@ export default function CitizenDashboard({ user, onLogout }) {
     { id: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
     { id: 'profile', label: 'Profile', icon: <User size={18} /> },
   ];
+
+  // Calculated stats
+  const totalCount = issues.length;
+  const openCount = issues.filter(r => r.status === 'Open' || r.status === 'Pending Verification').length;
+  const inProgressCount = issues.filter(r => r.status === 'In Progress' || r.status === 'Assigned').length;
+  const resolvedCount = issues.filter(r => r.status === 'Resolved').length;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -56,256 +69,481 @@ export default function CitizenDashboard({ user, onLogout }) {
         return <CommunityMapPage />;
       case 'insights':
         return <AIInsightsPage />;
-        case 'opportunities':
-    return (
-      <div className="dash-card">
-        <div className="dash-card-header">
-          <div>
-            <h1 className="hero-title" style={{ fontSize: '2rem', textAlign: 'left', marginBottom: '0.25rem' }}>
-              Development <span className="gradient-text">Opportunities</span>
-            </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-              Discover business and development opportunities in underserved communities.
-            </p>
-          </div>
-          <span className="badge-tag">AI Opportunity Finder</span>
-        </div>
-
-        <div className="dash-stats-grid" style={{ marginTop: '1.5rem' }}>
-
+      case 'opportunities':
+        return (
           <div className="dash-card">
-            <h3>🏪 Grocery Store</h3>
-            <p style={{ color: 'var(--text-muted)' }}>
-              No nearby grocery store has been reported in this area.
-            </p>
-            <strong>📍 Tuni, Kakinada</strong>
-            <p style={{ color: 'var(--text-muted)' }}>
-              Opportunity: High
-            </p>
-            <button className="btn btn-primary">
-              View Opportunity
-            </button>
+            <div className="dash-card-header" style={{ marginBottom: '1.25rem' }}>
+              <div>
+                <h1 className="hero-title" style={{ fontSize: '1.85rem', textAlign: 'left', marginBottom: '0.25rem', color: '#0f172a' }}>
+                  Development <span className="gradient-text">Opportunities</span>
+                </h1>
+                <p style={{ color: '#64748b', fontSize: '0.95rem' }}>
+                  Identified civic and service development opportunities across Visakhapatnam communities.
+                </p>
+              </div>
+              <span className="badge-tag">Community Development</span>
+            </div>
+
+            <div className="dash-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+              
+              <div className="dash-card" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <Store size={22} style={{ color: '#059669' }} />
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Local Grocery Shop</h3>
+                </div>
+                <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: '1.5' }}>
+                  Some village clusters have limited access to nearby daily essentials and grocery shops.
+                </p>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#059669', marginTop: '0.5rem' }}>
+                  📍 Padmanabham, Visakhapatnam
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                  <span className="priority-tag high">High Need</span>
+                  <button className="btn btn-outline" style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem' }} onClick={() => setActiveTab('map')}>
+                    View on Map
+                  </button>
+                </div>
+              </div>
+
+              <div className="dash-card" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <Bus size={22} style={{ color: '#0284c7' }} />
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Transportation Route</h3>
+                </div>
+                <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: '1.5' }}>
+                  Some locations need improved feeder transportation and bus frequency during peak hours.
+                </p>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#059669', marginTop: '0.5rem' }}>
+                  📍 Sabbavaram, Visakhapatnam
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                  <span className="priority-tag medium">Medium Need</span>
+                  <button className="btn btn-outline" style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem' }} onClick={() => setActiveTab('map')}>
+                    View on Map
+                  </button>
+                </div>
+              </div>
+
+              <div className="dash-card" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <HeartPulse size={22} style={{ color: '#dc2626' }} />
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Healthcare Clinic</h3>
+                </div>
+                <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: '1.5' }}>
+                  Some suburban and village areas would benefit from easier access to first-aid and pharmacy care.
+                </p>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#059669', marginTop: '0.5rem' }}>
+                  📍 Anandapuram, Visakhapatnam
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                  <span className="priority-tag high">High Need</span>
+                  <button className="btn btn-outline" style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem' }} onClick={() => setActiveTab('map')}>
+                    View on Map
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <div className="dash-card" style={{ marginTop: '1.5rem', background: '#ecfdf5', border: '1px solid #a7f3d0' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#065f46', marginBottom: '0.4rem' }}>
+                💡 How VillageVision AI Identifies Opportunities
+              </h3>
+              <p style={{ color: '#047857', fontSize: '0.88rem', lineHeight: '1.6' }}>
+                VillageVision AI evaluates citizen requests and geographic amenity gaps across Visakhapatnam to highlight locations where community businesses, micro-clinics, and transport services can make the highest impact.
+              </p>
+            </div>
           </div>
-
-          <div className="dash-card">
-            <h3>🚌 Local Transport</h3>
-            <p style={{ color: 'var(--text-muted)' }}>
-              The area has limited public transportation facilities.
-            </p>
-            <strong>📍 Annavaram, Kakinada</strong>
-            <p style={{ color: 'var(--text-muted)' }}>
-              Opportunity: Medium
-            </p>
-            <button className="btn btn-primary">
-              View Opportunity
-            </button>
-          </div>
-
-          <div className="dash-card">
-            <h3>💊 Pharmacy</h3>
-            <p style={{ color: 'var(--text-muted)' }}>
-              Residents may benefit from a nearby pharmacy or medical store.
-            </p>
-            <strong>📍 Shamshabad, Ranga Reddy</strong>
-            <p style={{ color: 'var(--text-muted)' }}>
-              Opportunity: High
-            </p>
-            <button className="btn btn-primary">
-              View Opportunity
-            </button>
-          </div>
-
-          <div className="dash-card">
-            <h3>☕ Cafe / Food Business</h3>
-            <p style={{ color: 'var(--text-muted)' }}>
-              Community activity suggests potential demand for a small food business.
-            </p>
-            <strong>📍 Devanahalli, Bengaluru Rural</strong>
-            <p style={{ color: 'var(--text-muted)' }}>
-              Opportunity: Medium
-            </p>
-            <button className="btn btn-primary">
-              View Opportunity
-            </button>
-          </div>
-
-        </div>
-
-        <div
-          className="dash-card"
-          style={{
-            marginTop: '1.5rem',
-            background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(20,184,166,0.04))'
-          }}
-        >
-          <h3>💡 How VillageVision AI identifies opportunities</h3>
-
-          <p style={{ color: 'var(--text-light)', lineHeight: '1.7' }}>
-            VillageVision AI can analyze community reports, population needs,
-            existing services and location data to identify areas where a
-            business or service may be useful.
-          </p>
-
-          <p style={{ color: 'var(--text-light)', lineHeight: '1.7' }}>
-            For example, if a village has many residents but no nearby pharmacy,
-            grocery store or transportation service, the platform can highlight
-            that location as a potential development opportunity.
-          </p>
-
-          <p style={{ color: 'var(--text-light)', lineHeight: '1.7' }}>
-            Interested entrepreneurs can explore these opportunities and consider
-            starting a business or service that addresses the community's needs.
-          </p>
-        </div>
-      </div>
-    );
+        );
       case 'notifications':
         return <NotificationsPage />;
       case 'profile':
-        return <ProfilePage user={user} />;
+        return <ProfilePage user={user} onLogout={onLogout} />;
       case 'home':
       default:
         return (
           <>
-            {/* QUICK STATS CARDS */}
-            <div className="dash-stats-grid">
+            {/* 1. OVERVIEW STAT CARDS (4 Cards) */}
+            <div className="dash-stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
+              
+              {/* Total Reports */}
               <div className="dash-stat-card">
-                <div className="stat-icon-wrapper green">
+                <div className="stat-icon-wrapper green" style={{ background: '#ecfdf5', color: '#059669' }}>
                   <FileText size={22} />
                 </div>
                 <div>
-                  <div className="dash-stat-val">{issues.length}</div>
-                  <div className="dash-stat-lbl">Total Issues</div>
+                  <div className="dash-stat-val" style={{ color: '#0f172a' }}>{totalCount}</div>
+                  <div className="dash-stat-lbl">Total Reports</div>
                 </div>
               </div>
 
+              {/* Open */}
               <div className="dash-stat-card">
-                <div className="stat-icon-wrapper orange">
+                <div className="stat-icon-wrapper orange" style={{ background: '#fff7ed', color: '#ea580c' }}>
                   <Clock size={22} />
                 </div>
                 <div>
-                  <div className="dash-stat-val">{issues.filter(r => r.status === 'Open' || r.status === 'Pending Verification').length}</div>
+                  <div className="dash-stat-val" style={{ color: '#ea580c' }}>{openCount}</div>
                   <div className="dash-stat-lbl">Open</div>
                 </div>
               </div>
 
+              {/* In Progress */}
               <div className="dash-stat-card">
-                <div className="dash-stat-icon teal">
+                <div className="stat-icon-wrapper blue" style={{ background: '#eff6ff', color: '#2563eb' }}>
                   <AlertCircle size={22} />
                 </div>
                 <div>
-                  <div className="dash-stat-val">{issues.filter(r => r.status === 'In Progress' || r.status === 'Assigned').length}</div>
+                  <div className="dash-stat-val" style={{ color: '#2563eb' }}>{inProgressCount}</div>
                   <div className="dash-stat-lbl">In Progress</div>
                 </div>
               </div>
 
+              {/* Resolved */}
               <div className="dash-stat-card">
-                <div className="stat-icon-wrapper blue">
+                <div className="stat-icon-wrapper green" style={{ background: '#f0fdf4', color: '#16a34a' }}>
                   <CheckCircle2 size={22} />
                 </div>
                 <div>
-                  <div className="dash-stat-val">{issues.filter(r => r.status === 'Resolved').length}</div>
+                  <div className="dash-stat-val" style={{ color: '#16a34a' }}>{resolvedCount}</div>
                   <div className="dash-stat-lbl">Resolved</div>
                 </div>
               </div>
+
             </div>
 
-            {/* MAIN ACTIONS BAR */}
-            <div className="dash-actions-bar">
-              <button className="btn btn-primary" onClick={() => setActiveTab('report-issue')}>
-                <PlusCircle size={18} /> Report a Community Issue
-              </button>
-              <button className="btn btn-secondary" onClick={() => setActiveTab('my-reports')}>
-                <FileText size={18} /> Track My Reports
-              </button>
-              <button className="btn btn-outline" onClick={() => setActiveTab('community-issues')}>
-                <Layers size={18} /> View Community Issues
-              </button>
-            </div>
-
-            {/* TWO COLUMN GRID CONTENT */}
-            <div className="dash-two-col">
+            {/* 2. QUICK ACTIONS (3 Large Clean Cards) */}
+            <div className="dash-card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '1rem' }}>
+                Quick Actions
+              </h3>
               
-              {/* RECENT COMMUNITY PROBLEMS TABLE */}
-              <div className="dash-card">
-                <div className="dash-card-header">
-                  <h3>Recent Community Reports</h3>
-                  <span className="badge-tag">Live Village Feed</span>
-                </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+                
+                {/* Action 1: Report Issue */}
+                <button
+                  onClick={() => setActiveTab('report-issue')}
+                  className="quick-action-card"
+                  style={{
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '16px',
+                    padding: '1.25rem',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                  }}
+                >
+                  <div>
+                    <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.85rem' }}>
+                      <PlusCircle size={22} />
+                    </div>
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.25rem' }}>
+                      📝 Report an Issue
+                    </div>
+                    <div style={{ fontSize: '0.84rem', color: '#64748b' }}>
+                      Report a new community problem with location & photos
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '1rem', fontSize: '0.84rem', fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    Start Report <ArrowRight size={14} />
+                  </div>
+                </button>
 
-                <div className="table-responsive">
-                  <table className="dash-table">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Issue & Category</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {issues.slice(0, 5).map((r) => (
+                {/* Action 2: Track My Reports */}
+                <button
+                  onClick={() => setActiveTab('my-reports')}
+                  className="quick-action-card"
+                  style={{
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '16px',
+                    padding: '1.25rem',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                  }}
+                >
+                  <div>
+                    <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.85rem' }}>
+                      <FileText size={22} />
+                    </div>
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.25rem' }}>
+                      📋 Track My Reports
+                    </div>
+                    <div style={{ fontSize: '0.84rem', color: '#64748b' }}>
+                      Check real-time resolution status of your submitted reports
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '1rem', fontSize: '0.84rem', fontWeight: 700, color: '#2563eb', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    View Status <ArrowRight size={14} />
+                  </div>
+                </button>
+
+                {/* Action 3: View Community Map */}
+                <button
+                  onClick={() => setActiveTab('map')}
+                  className="quick-action-card"
+                  style={{
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '16px',
+                    padding: '1.25rem',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                  }}
+                >
+                  <div>
+                    <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#fdf4ff', color: '#a855f7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.85rem' }}>
+                      <Map size={22} />
+                    </div>
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.25rem' }}>
+                      🗺️ View Community Map
+                    </div>
+                    <div style={{ fontSize: '0.84rem', color: '#64748b' }}>
+                      Explore geo-tagged issues and problem spots in your area
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '1rem', fontSize: '0.84rem', fontWeight: 700, color: '#a855f7', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    Explore Map <ArrowRight size={14} />
+                  </div>
+                </button>
+
+              </div>
+            </div>
+
+            {/* 3. RECENT REPORTS TABLE */}
+            <div className="dash-card" style={{ marginBottom: '1.5rem' }}>
+              <div className="dash-card-header" style={{ marginBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    Recent Reports
+                  </h3>
+                  <p style={{ color: '#64748b', fontSize: '0.84rem', margin: '0.2rem 0 0' }}>
+                    Latest community problem logs and resolution progress
+                  </p>
+                </div>
+                <button className="btn btn-outline" style={{ fontSize: '0.82rem', padding: '0.4rem 0.85rem' }} onClick={() => setActiveTab('community-issues')}>
+                  View All Issues &rarr;
+                </button>
+              </div>
+
+              <div className="table-responsive">
+                <table className="dash-table">
+                  <thead>
+                    <tr>
+                      <th>Issue ID</th>
+                      <th>Problem</th>
+                      <th>Location</th>
+                      <th>Priority</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {issues.slice(0, 5).map((r) => {
+                      const statusClass = r.status.toLowerCase().includes('open') ? 'open'
+                        : r.status.toLowerCase().includes('progress') ? 'in-progress'
+                        : 'resolved';
+
+                      return (
                         <tr key={r.id}>
-                          <td><code className="id-code">{r.id}</code></td>
+                          <td><code className="id-code" style={{ background: '#f1f5f9', color: '#059669', padding: '0.2rem 0.45rem', borderRadius: '6px' }}>{r.id}</code></td>
                           <td>
-                            <div className="table-title">{r.category}</div>
-                            <div className="table-sub">{r.description.substring(0, 45)}...</div>
+                            <div className="table-title" style={{ fontWeight: 700, color: '#0f172a' }}>{r.category}</div>
+                            <div className="table-sub" style={{ fontSize: '0.8rem', color: '#64748b' }}>{r.description.substring(0, 45)}...</div>
                           </td>
-                          <td><MapPin size={14} className="inline-icon" /> {r.area}, {r.village}</td>
+                          <td style={{ fontSize: '0.86rem', color: '#334155' }}>
+                            <MapPin size={13} style={{ color: '#059669', display: 'inline', marginRight: '0.25rem' }} /> 
+                            {r.area}, {r.village}
+                          </td>
                           <td>
-                            <span className={`status-pill ${r.status.toLowerCase().replace(/\s+/g, '-')}`}>
+                            <span className={`priority-tag ${(r.priority || 'Medium').toLowerCase()}`}>
+                              {r.priority || 'Medium'}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`status-pill ${statusClass}`}>
                               {r.status}
                             </span>
                           </td>
-                          <td>{r.date}</td>
+                          <td style={{ fontSize: '0.84rem', color: '#64748b' }}>{r.date}</td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
+            </div>
 
-              {/* AI INSIGHTS & COMMUNITY MAP PANEL */}
-              <div className="dash-side-panel">
-                
-                {/* AI Insights Box */}
-                <div className="dash-card ai-insight-card">
-                  <div className="dash-card-header">
-                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Sparkles size={18} className="gradient-text" /> AI Village Insights
+            {/* 4. TWO-COLUMN: COMMUNITY INSIGHTS & DEVELOPMENT OPPORTUNITIES PREVIEW */}
+            <div className="dash-two-col" style={{ gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              
+              {/* Community Insights Preview (Visakhapatnam Focused) */}
+              <div className="dash-card">
+                <div className="dash-card-header" style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <Sparkles size={18} style={{ color: '#059669' }} />
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      Community Insights
                     </h3>
                   </div>
-                  <div className="ai-insight-content">
-                    <div className="ai-alert-item">
-                      <div className="ai-bullet"></div>
-                      <p><strong>Hotspot Alert:</strong> 38% of reports in Tuni relate to road damage. High priority automated flag sent.</p>
-                    </div>
-                    <div className="ai-alert-item">
-                      <div className="ai-bullet"></div>
-                      <p><strong>Resolution Velocity:</strong> Average resolution time improved by 35% this month due to direct Gram Panchayat routing.</p>
-                    </div>
-                  </div>
+                  <span className="badge-tag" style={{ fontSize: '0.72rem' }}>AI Prototype</span>
                 </div>
 
-                {/* Community Map Widget */}
-                <div className="dash-card map-widget-card" style={{ marginTop: '1.25rem' }}>
-                  <div className="dash-card-header">
-                    <h3>Community Map</h3>
-                    <button className="badge-tag" style={{ border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('map')}>
-                      Open Map View &rarr;
-                    </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.85rem 1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                      <Construction size={16} style={{ color: '#ea580c' }} />
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>🚧 Road Damage</strong>
+                    </div>
+                    <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0, lineHeight: '1.4' }}>
+                      Road-related issues are frequently reported in some Visakhapatnam village areas.
+                    </p>
                   </div>
-                  <div className="map-placeholder-box">
-                    <Map size={36} style={{ color: 'var(--primary-teal)', opacity: 0.8 }} />
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                      Interactive Geo-Spatial Map of Tuni Village
+
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.85rem 1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                      <Droplets size={16} style={{ color: '#0284c7' }} />
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>💧 Water & Sanitation</strong>
+                    </div>
+                    <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0, lineHeight: '1.4' }}>
+                      Water supply and drainage complaints need attention in some locations.
+                    </p>
+                  </div>
+
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.85rem 1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                      <TrendingUp size={16} style={{ color: '#059669' }} />
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>🌱 Development</strong>
+                    </div>
+                    <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0, lineHeight: '1.4' }}>
+                      Some areas in Visakhapatnam may benefit from additional local public facilities.
                     </p>
                   </div>
                 </div>
 
+                <button 
+                  className="btn btn-outline" 
+                  style={{ width: '100%', marginTop: '1rem', fontSize: '0.84rem' }}
+                  onClick={() => setActiveTab('insights')}
+                >
+                  Explore Detailed AI Insights &rarr;
+                </button>
               </div>
 
+              {/* Development Opportunities Preview */}
+              <div className="dash-card">
+                <div className="dash-card-header" style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <Store size={18} style={{ color: '#059669' }} />
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      Development Opportunities
+                    </h3>
+                  </div>
+                  <span className="badge-tag">Service Gaps</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.85rem 1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                      <Store size={16} style={{ color: '#059669' }} />
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>🏪 Local Shop</strong>
+                    </div>
+                    <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0, lineHeight: '1.4' }}>
+                      Some areas have limited access to nearby shops.
+                    </p>
+                  </div>
+
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.85rem 1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                      <Bus size={16} style={{ color: '#0284c7' }} />
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>🚌 Transportation</strong>
+                    </div>
+                    <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0, lineHeight: '1.4' }}>
+                      Some locations may need better transportation access.
+                    </p>
+                  </div>
+
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.85rem 1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                      <HeartPulse size={16} style={{ color: '#dc2626' }} />
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>🏥 Healthcare</strong>
+                    </div>
+                    <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0, lineHeight: '1.4' }}>
+                      Some areas may benefit from easier access to healthcare.
+                    </p>
+                  </div>
+                </div>
+
+                <button 
+                  className="btn btn-outline" 
+                  style={{ width: '100%', marginTop: '1rem', fontSize: '0.84rem' }}
+                  onClick={() => setActiveTab('opportunities')}
+                >
+                  View All Opportunities &rarr;
+                </button>
+              </div>
+
+            </div>
+
+            {/* 5. COMMUNITY MAP PREVIEW */}
+            <div className="dash-card">
+              <div className="dash-card-header" style={{ marginBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    Community Map
+                  </h3>
+                  <p style={{ color: '#64748b', fontSize: '0.84rem', margin: '0.2rem 0 0' }}>
+                    View reported issues in your community.
+                  </p>
+                </div>
+                <button className="btn btn-primary" style={{ fontSize: '0.86rem', padding: '0.5rem 1.1rem' }} onClick={() => setActiveTab('map')}>
+                  Open Map &rarr;
+                </button>
+              </div>
+
+              <div 
+                style={{
+                  background: '#f8fafc',
+                  border: '1.5px dashed #cbd5e1',
+                  borderRadius: '16px',
+                  padding: '2.5rem 1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setActiveTab('map')}
+              >
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.85rem' }}>
+                  <Map size={28} />
+                </div>
+                <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem' }}>
+                  Interactive Geographic Problem Map
+                </h4>
+                <p style={{ color: '#64748b', fontSize: '0.86rem', maxWidth: '420px', margin: '0 0 1rem' }}>
+                  Locate resolved and ongoing issues with interactive status pins and location filtering.
+                </p>
+                <span className="btn btn-outline" style={{ fontSize: '0.82rem' }}>
+                  Explore Fullscreen Map &rarr;
+                </span>
+              </div>
             </div>
           </>
         );

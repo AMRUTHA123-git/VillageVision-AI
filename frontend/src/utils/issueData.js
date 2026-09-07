@@ -2,13 +2,11 @@
 // VillageVision AI - Shared Issue Data & Persistence Engine
 // ============================================================
 
-const STORAGE_KEY = 'villagevision_issues';
+const STORAGE_KEY = 'villagevision_issues_v2';
 
 // ============================================================
 // ISSUE CATEGORIES
-// Used for AI categorization / filtering / reporting
 // ============================================================
-
 export const ISSUE_CATEGORIES = [
   'Road Damage',
   'Water Leakage',
@@ -28,1754 +26,454 @@ export const ISSUE_CATEGORIES = [
 ];
 
 // ============================================================
-// LOCATION HIERARCHY
-// State → District → Village / Town
-//
-// "Other" is available so the user can enter a location
-// that is not present in the demonstration dataset.
+// UNIFIED LOCATION HIERARCHY (VISAKHAPATNAM ONLY)
 // ============================================================
+export const VISAKHAPATNAM_VILLAGES = [
+  'Bheemunipatnam',
+  'Anandapuram',
+  'Padmanabham',
+  'Pendurthi',
+  'Sabbavaram',
+  'Gajuwaka',
+  'Visakhapatnam Rural',
+  'Other'
+];
 
 export const LOCATION_HIERARCHY = {
-
-  // ==========================================================
-  // ANDHRA PRADESH
-  // ==========================================================
-
   'Andhra Pradesh': {
-
-    'Alluri Sitharama Raju': [
-      'Paderu',
-      'Araku Valley',
-      'Rampachodavaram',
-      'Chintapalle',
-      'Other'
-    ],
-
-    'Anakapalli': [
-      'Anakapalli',
-      'Narsipatnam',
-      'Yelamanchili',
-      'Chodavaram',
-      'Madugula',
-      'Other'
-    ],
-
-    'Anantapur': [
-      'Anantapur',
-      'Gooty',
-      'Guntakal',
-      'Rayadurg',
-      'Uravakonda',
-      'Other'
-    ],
-
-    'Bapatla': [
-      'Bapatla',
-      'Chirala',
-      'Repalle',
-      'Ponnur',
-      'Other'
-    ],
-
-    'Chittoor': [
-      'Chittoor',
-      'Madanapalle',
-      'Punganur',
-      'Palamaner',
-      'Other'
-    ],
-
-    'Dr. B.R. Ambedkar Konaseema': [
-      'Amalapuram',
-      'Razole',
-      'Kothapeta',
-      'Mummidivaram',
-      'Other'
-    ],
-
-    'East Godavari': [
-      'Rajamahendravaram',
-      'Rajahmundry',
-      'Kovvur',
-      'Nidadavole',
-      'Other'
-    ],
-
-    'Eluru': [
-      'Eluru',
-      'Nuzvid',
-      'Jangareddygudem',
-      'Chintalapudi',
-      'Other'
-    ],
-
-    'Guntur': [
-      'Guntur',
-      'Tenali',
-      'Mangalagiri',
-      'Sattenapalle',
-      'Other'
-    ],
-
-    'Kakinada': [
-      'Kakinada',
-      'Tuni',
-      'Annavaram',
-      'Peddapuram',
-      'Pithapuram',
-      'Samalkota',
-      'Prathipadu',
-      'Jaggampeta',
-      'Other'
-    ],
-
-    'Krishna': [
-      'Machilipatnam',
-      'Gudivada',
-      'Pedana',
-      'Vuyyuru',
-      'Other'
-    ],
-
-    'Kurnool': [
-      'Kurnool',
-      'Adoni',
-      'Nandyal',
-      'Dhone',
-      'Other'
-    ],
-
-    'Nandyal': [
-      'Nandyal',
-      'Dhone',
-      'Allagadda',
-      'Banaganapalle',
-      'Other'
-    ],
-
-    'NTR': [
-      'Vijayawada',
-      'Nandigama',
-      'Tiruvuru',
-      'Jaggayyapeta',
-      'Other'
-    ],
-
-    'Palnadu': [
-      'Narasaraopet',
-      'Sattenapalle',
-      'Vinukonda',
-      'Macherla',
-      'Other'
-    ],
-
-    'Parvathipuram Manyam': [
-      'Parvathipuram',
-      'Salur',
-      'Kurupam',
-      'Other'
-    ],
-
-    'Prakasam': [
-      'Ongole',
-      'Chirala',
-      'Markapur',
-      'Kandukur',
-      'Other'
-    ],
-
-    'Srikakulam': [
-      'Srikakulam',
-      'Palasa',
-      'Amadalavalasa',
-      'Narasannapeta',
-      'Other'
-    ],
-
-    'Sri Potti Sriramulu Nellore': [
-      'Nellore',
-      'Kavali',
-      'Gudur',
-      'Atmakur',
-      'Other'
-    ],
-
-    'Tirupati': [
-      'Tirupati',
-      'Srikalahasti',
-      'Sullurpeta',
-      'Venkatagiri',
-      'Other'
-    ],
-
     'Visakhapatnam': [
-      'Visakhapatnam',
       'Bheemunipatnam',
+      'Anandapuram',
+      'Padmanabham',
+      'Pendurthi',
+      'Sabbavaram',
       'Gajuwaka',
-      'Anakapalle',
-      'Other'
-    ],
-
-    'Vizianagaram': [
-      'Vizianagaram',
-      'Bobbili',
-      'Gajapathinagaram',
-      'Parvathipuram',
-      'Other'
-    ],
-
-    'West Godavari': [
-      'Bhimavaram',
-      'Narasapur',
-      'Tanuku',
-      'Tadepalligudem',
-      'Other'
-    ],
-
-    'YSR Kadapa': [
-      'Kadapa',
-      'Proddatur',
-      'Rajampet',
-      'Pulivendula',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // TELANGANA
-  // ==========================================================
-
-  'Telangana': {
-
-    'Adilabad': [
-      'Adilabad',
-      'Bhainsa',
-      'Boath',
-      'Other'
-    ],
-
-    'Bhadradri Kothagudem': [
-      'Kothagudem',
-      'Palvancha',
-      'Manuguru',
-      'Other'
-    ],
-
-    'Hyderabad': [
-      'Hyderabad',
-      'Secunderabad',
-      'Charminar',
-      'Other'
-    ],
-
-    'Jagtial': [
-      'Jagtial',
-      'Korutla',
-      'Metpally',
-      'Other'
-    ],
-
-    'Karimnagar': [
-      'Karimnagar',
-      'Huzurabad',
-      'Choppadandi',
-      'Other'
-    ],
-
-    'Khammam': [
-      'Khammam',
-      'Madhira',
-      'Kusumanchi',
-      'Other'
-    ],
-
-    'Mahabubnagar': [
-      'Mahbubnagar',
-      'Jadcherla',
-      'Narayanpet',
-      'Other'
-    ],
-
-    'Medak': [
-      'Medak',
-      'Narsapur',
-      'Toopran',
-      'Other'
-    ],
-
-    'Medchal-Malkajgiri': [
-      'Medchal',
-      'Malkajgiri',
-      'Kompally',
-      'Quthbullapur',
-      'Other'
-    ],
-
-    'Nalgonda': [
-      'Nalgonda',
-      'Miryalaguda',
-      'Devarakonda',
-      'Other'
-    ],
-
-    'Nizamabad': [
-      'Nizamabad',
-      'Bodhan',
-      'Armoor',
-      'Other'
-    ],
-
-    'Ranga Reddy': [
-      'Shamshabad',
-      'Ibrahimpatnam',
-      'Chevella',
-      'Rajendranagar',
-      'Other'
-    ],
-
-    'Sangareddy': [
-      'Sangareddy',
-      'Patancheru',
-      'Zaheerabad',
-      'Other'
-    ],
-
-    'Siddipet': [
-      'Siddipet',
-      'Gajwel',
-      'Husnabad',
-      'Other'
-    ],
-
-    'Suryapet': [
-      'Suryapet',
-      'Kodad',
-      'Huzurnagar',
-      'Other'
-    ],
-
-    'Warangal': [
-      'Warangal',
-      'Hanamkonda',
-      'Parkal',
-      'Narsampet',
-      'Other'
-    ],
-
-    'Yadadri Bhuvanagiri': [
-      'Bhongir',
-      'Choutuppal',
-      'Alair',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // KARNATAKA
-  // ==========================================================
-
-  'Karnataka': {
-
-    'Bengaluru Rural': [
-      'Devanahalli',
-      'Doddaballapur',
-      'Nelamangala',
-      'Hoskote',
-      'Other'
-    ],
-
-    'Bengaluru Urban': [
-      'Bengaluru',
-      'Yelahanka',
-      'Anekal',
-      'Electronic City',
-      'Other'
-    ],
-
-    'Belagavi': [
-      'Belagavi',
-      'Gokak',
-      'Chikodi',
-      'Athani',
-      'Other'
-    ],
-
-    'Dakshina Kannada': [
-      'Mangaluru',
-      'Bantwal',
-      'Puttur',
-      'Sullia',
-      'Other'
-    ],
-
-    'Dharwad': [
-      'Dharwad',
-      'Hubballi',
-      'Kalghatgi',
-      'Other'
-    ],
-
-    'Mysuru': [
-      'Mysuru',
-      'Nanjangud',
-      'Hunsur',
-      'T. Narasipura',
-      'Other'
-    ],
-
-    'Shivamogga': [
-      'Shivamogga',
-      'Bhadravati',
-      'Sagar',
-      'Other'
-    ],
-
-    'Udupi': [
-      'Udupi',
-      'Kundapura',
-      'Karkala',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // TAMIL NADU
-  // ==========================================================
-
-  'Tamil Nadu': {
-
-    'Chennai': [
-      'Chennai',
-      'Avadi',
-      'Tambaram',
-      'Other'
-    ],
-
-    'Coimbatore': [
-      'Coimbatore',
-      'Pollachi',
-      'Mettupalayam',
-      'Other'
-    ],
-
-    'Madurai': [
-      'Madurai',
-      'Melur',
-      'Thirumangalam',
-      'Other'
-    ],
-
-    'Salem': [
-      'Salem',
-      'Attur',
-      'Mettur',
-      'Other'
-    ],
-
-    'Tiruchirappalli': [
-      'Tiruchirappalli',
-      'Manapparai',
-      'Musiri',
-      'Other'
-    ],
-
-    'Tirunelveli': [
-      'Tirunelveli',
-      'Palayamkottai',
-      'Ambasamudram',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // MAHARASHTRA
-  // ==========================================================
-
-  'Maharashtra': {
-
-    'Mumbai City': [
-      'Mumbai',
-      'Colaba',
-      'Dadar',
-      'Other'
-    ],
-
-    'Mumbai Suburban': [
-      'Andheri',
-      'Borivali',
-      'Bandra',
-      'Other'
-    ],
-
-    'Pune': [
-      'Pune',
-      'Baramati',
-      'Shirur',
-      'Lonavala',
-      'Other'
-    ],
-
-    'Nagpur': [
-      'Nagpur',
-      'Kamptee',
-      'Hingna',
-      'Other'
-    ],
-
-    'Nashik': [
-      'Nashik',
-      'Malegaon',
-      'Sinnar',
-      'Other'
-    ],
-
-    'Thane': [
-      'Thane',
-      'Kalyan',
-      'Bhiwandi',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // KERALA
-  // ==========================================================
-
-  'Kerala': {
-
-    'Thiruvananthapuram': [
-      'Thiruvananthapuram',
-      'Neyyattinkara',
-      'Attingal',
-      'Other'
-    ],
-
-    'Ernakulam': [
-      'Kochi',
-      'Aluva',
-      'Perumbavoor',
-      'Other'
-    ],
-
-    'Kozhikode': [
-      'Kozhikode',
-      'Vadakara',
-      'Koyilandy',
-      'Other'
-    ],
-
-    'Thrissur': [
-      'Thrissur',
-      'Chalakudy',
-      'Guruvayur',
-      'Other'
-    ],
-
-    'Kollam': [
-      'Kollam',
-      'Karunagappally',
-      'Punalur',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // ODISHA
-  // ==========================================================
-
-  'Odisha': {
-
-    'Khordha': [
-      'Bhubaneswar',
-      'Jatani',
-      'Khurda',
-      'Other'
-    ],
-
-    'Cuttack': [
-      'Cuttack',
-      'Athagarh',
-      'Banki',
-      'Other'
-    ],
-
-    'Ganjam': [
-      'Berhampur',
-      'Chhatrapur',
-      'Asika',
-      'Other'
-    ],
-
-    'Puri': [
-      'Puri',
-      'Konark',
-      'Pipili',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // WEST BENGAL
-  // ==========================================================
-
-  'West Bengal': {
-
-    'Kolkata': [
-      'Kolkata',
-      'Salt Lake',
-      'Behala',
-      'Other'
-    ],
-
-    'Howrah': [
-      'Howrah',
-      'Uluberia',
-      'Amta',
-      'Other'
-    ],
-
-    'North 24 Parganas': [
-      'Barasat',
-      'Barrackpore',
-      'Basirhat',
-      'Other'
-    ],
-
-    'South 24 Parganas': [
-      'Diamond Harbour',
-      'Canning',
-      'Sonarpur',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // GUJARAT
-  // ==========================================================
-
-  'Gujarat': {
-
-    'Ahmedabad': [
-      'Ahmedabad',
-      'Dholka',
-      'Sanand',
-      'Other'
-    ],
-
-    'Surat': [
-      'Surat',
-      'Bardoli',
-      'Olpad',
-      'Other'
-    ],
-
-    'Vadodara': [
-      'Vadodara',
-      'Padra',
-      'Karjan',
-      'Other'
-    ],
-
-    'Rajkot': [
-      'Rajkot',
-      'Gondal',
-      'Jetpur',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // RAJASTHAN
-  // ==========================================================
-
-  'Rajasthan': {
-
-    'Jaipur': [
-      'Jaipur',
-      'Amer',
-      'Sanganer',
-      'Other'
-    ],
-
-    'Jodhpur': [
-      'Jodhpur',
-      'Bilara',
-      'Osian',
-      'Other'
-    ],
-
-    'Udaipur': [
-      'Udaipur',
-      'Gogunda',
-      'Salumbar',
-      'Other'
-    ],
-
-    'Kota': [
-      'Kota',
-      'Ladpura',
-      'Ramganj Mandi',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // UTTAR PRADESH
-  // ==========================================================
-
-  'Uttar Pradesh': {
-
-    'Lucknow': [
-      'Lucknow',
-      'Malihabad',
-      'Mohan',
-      'Other'
-    ],
-
-    'Varanasi': [
-      'Varanasi',
-      'Ramnagar',
-      'Pindra',
-      'Other'
-    ],
-
-    'Agra': [
-      'Agra',
-      'Fatehabad',
-      'Kiraoli',
-      'Other'
-    ],
-
-    'Prayagraj': [
-      'Prayagraj',
-      'Phulpur',
-      'Koraon',
-      'Other'
-    ],
-
-    'Kanpur Nagar': [
-      'Kanpur',
-      'Bilhaur',
-      'Ghatampur',
-      'Other'
-    ],
-
-    'Gorakhpur': [
-      'Gorakhpur',
-      'Sahjanwa',
-      'Chauri Chaura',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // BIHAR
-  // ==========================================================
-
-  'Bihar': {
-
-    'Patna': [
-      'Patna',
-      'Danapur',
-      'Fatuha',
-      'Other'
-    ],
-
-    'Gaya': [
-      'Gaya',
-      'Bodh Gaya',
-      'Tekari',
-      'Other'
-    ],
-
-    'Muzaffarpur': [
-      'Muzaffarpur',
-      'Kanti',
-      'Sakra',
-      'Other'
-    ],
-
-    'Bhagalpur': [
-      'Bhagalpur',
-      'Kahalgaon',
-      'Naugachhia',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // MADHYA PRADESH
-  // ==========================================================
-
-  'Madhya Pradesh': {
-
-    'Bhopal': [
-      'Bhopal',
-      'Berasia',
-      'Other'
-    ],
-
-    'Indore': [
-      'Indore',
-      'Mhow',
-      'Depalpur',
-      'Other'
-    ],
-
-    'Gwalior': [
-      'Gwalior',
-      'Dabra',
-      'Bhitarwar',
-      'Other'
-    ],
-
-    'Jabalpur': [
-      'Jabalpur',
-      'Patan',
-      'Sihora',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // PUNJAB
-  // ==========================================================
-
-  'Punjab': {
-
-    'Ludhiana': [
-      'Ludhiana',
-      'Khanna',
-      'Jagraon',
-      'Other'
-    ],
-
-    'Amritsar': [
-      'Amritsar',
-      'Ajnala',
-      'Majitha',
-      'Other'
-    ],
-
-    'Patiala': [
-      'Patiala',
-      'Rajpura',
-      'Samana',
-      'Other'
-    ],
-
-    'Jalandhar': [
-      'Jalandhar',
-      'Nakodar',
-      'Phillaur',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // HARYANA
-  // ==========================================================
-
-  'Haryana': {
-
-    'Gurugram': [
-      'Gurugram',
-      'Sohna',
-      'Pataudi',
-      'Other'
-    ],
-
-    'Faridabad': [
-      'Faridabad',
-      'Ballabgarh',
-      'Tigaon',
-      'Other'
-    ],
-
-    'Hisar': [
-      'Hisar',
-      'Hansi',
-      'Barwala',
-      'Other'
-    ],
-
-    'Panipat': [
-      'Panipat',
-      'Samalkha',
-      'Israna',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // DELHI
-  // ==========================================================
-
-  'Delhi': {
-
-    'New Delhi': [
-      'New Delhi',
-      'Dwarka',
-      'Rohini',
-      'Saket',
-      'Other'
-    ],
-
-    'Central Delhi': [
-      'Karol Bagh',
-      'Paharganj',
-      'Other'
-    ],
-
-    'South Delhi': [
-      'Saket',
-      'Mehrauli',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // JAMMU & KASHMIR
-  // ==========================================================
-
-  'Jammu and Kashmir': {
-
-    'Jammu': [
-      'Jammu',
-      'Akhnoor',
-      'Bishnah',
-      'Other'
-    ],
-
-    'Srinagar': [
-      'Srinagar',
-      'Ganderbal',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // JHARKHAND
-  // ==========================================================
-
-  'Jharkhand': {
-
-    'Ranchi': [
-      'Ranchi',
-      'Bundu',
-      'Kanke',
-      'Other'
-    ],
-
-    'East Singhbhum': [
-      'Jamshedpur',
-      'Ghatshila',
-      'Other'
-    ],
-
-    'Dhanbad': [
-      'Dhanbad',
-      'Sindri',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // CHHATTISGARH
-  // ==========================================================
-
-  'Chhattisgarh': {
-
-    'Raipur': [
-      'Raipur',
-      'Abhanpur',
-      'Arang',
-      'Other'
-    ],
-
-    'Bilaspur': [
-      'Bilaspur',
-      'Takhatpur',
-      'Other'
-    ],
-
-    'Durg': [
-      'Durg',
-      'Bhilai',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // ASSAM
-  // ==========================================================
-
-  'Assam': {
-
-    'Kamrup Metropolitan': [
-      'Guwahati',
-      'Dispur',
-      'Other'
-    ],
-
-    'Dibrugarh': [
-      'Dibrugarh',
-      'Naharkatia',
-      'Other'
-    ],
-
-    'Jorhat': [
-      'Jorhat',
-      'Titabor',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // GOA
-  // ==========================================================
-
-  'Goa': {
-
-    'North Goa': [
-      'Panaji',
-      'Mapusa',
-      'Pernem',
-      'Other'
-    ],
-
-    'South Goa': [
-      'Margao',
-      'Vasco da Gama',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // HIMACHAL PRADESH
-  // ==========================================================
-
-  'Himachal Pradesh': {
-
-    'Shimla': [
-      'Shimla',
-      'Theog',
-      'Other'
-    ],
-
-    'Kangra': [
-      'Dharamshala',
-      'Palampur',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // UTTARAKHAND
-  // ==========================================================
-
-  'Uttarakhand': {
-
-    'Dehradun': [
-      'Dehradun',
-      'Mussoorie',
-      'Rishikesh',
-      'Other'
-    ],
-
-    'Haridwar': [
-      'Haridwar',
-      'Roorkee',
-      'Other'
-    ],
-
-    'Nainital': [
-      'Nainital',
-      'Haldwani',
-      'Other'
-    ],
-
-    'Other': [
-      'Other'
-    ]
-  },
-
-  // ==========================================================
-  // GOA / OTHER STATES FALLBACK
-  // ==========================================================
-
-  'Other': {
-    'Other': [
+      'Visakhapatnam Rural',
       'Other'
     ]
   }
 };
 
-
 // ============================================================
-// BACKWARD COMPATIBILITY
-//
-// Some existing components may still import LOCATION_DATA.
-// Keep it available so existing code doesn't break.
+// INITIAL DEMO ISSUES (VISAKHAPATNAM LOCALITIES WITH PINCODES & TIME)
 // ============================================================
-
-export const LOCATION_DATA = LOCATION_HIERARCHY;
-
-
-// ============================================================
-// INITIAL REALISTIC DEMO RECORDS
-// ============================================================
-
 export const INITIAL_DEMO_ISSUES = [
-
   {
     id: 'VV-1042',
     category: 'Road Damage',
-    description:
-      'Severe asphalt erosion and deep potholes causing traffic delays and vehicle damage near primary school entrance.',
+    description: 'Severe potholes reported near the main road causing vehicular hazard and traffic delays.',
     photo: null,
     state: 'Andhra Pradesh',
-    district: 'Kakinada',
-    village: 'Tuni',
-    area: 'School Road',
-    latitude: 17.3542,
-    longitude: 82.5488,
+    district: 'Visakhapatnam',
+    village: 'Bheemunipatnam',
+    area: 'Main Road',
+    pincode: '531163',
+    latitude: 17.8912,
+    longitude: 83.4542,
     priority: 'High',
     status: 'Open',
-    reportedBy: 'Amrutha Varshini',
+    reportedBy: 'Ramesh Sharma',
     reportedByRole: 'Citizen',
-    date: '2026-08-18'
+    date: '2026-08-18',
+    time: '10:30 AM'
   },
-
   {
     id: 'VV-1043',
     category: 'Water Leakage',
-    description:
-      'Main clean water pipeline leaking onto public walkway near Sector 4 community center.',
+    description: 'Main clean water pipeline leaking onto public walkway near Sector 3 center.',
     photo: null,
     state: 'Andhra Pradesh',
-    district: 'Kakinada',
-    village: 'Tuni',
-    area: 'Sector 4',
-    latitude: 17.3580,
-    longitude: 82.5520,
+    district: 'Visakhapatnam',
+    village: 'Anandapuram',
+    area: 'Village Center',
+    pincode: '530052',
+    latitude: 17.9150,
+    longitude: 83.3980,
     priority: 'High',
     status: 'In Progress',
-    reportedBy: 'Ramesh Kumar',
-    reportedByRole: 'Citizen',
-    date: '2026-08-19'
+    reportedBy: 'Seva Foundation',
+    reportedByRole: 'NGO / Volunteer',
+    date: '2026-08-19',
+    time: '02:15 PM'
   },
-
   {
     id: 'VV-1039',
     category: 'Broken Streetlight',
-    description:
-      'Dark street corner due to non-functioning LED streetlight fixture near evening bus stop.',
+    description: 'Dark street corner due to non-functioning LED streetlight fixture near evening bus stop.',
     photo: null,
     state: 'Andhra Pradesh',
-    district: 'Kakinada',
-    village: 'Annavaram',
-    area: 'Market Area',
-    latitude: 17.3510,
-    longitude: 82.5450,
+    district: 'Visakhapatnam',
+    village: 'Pendurthi',
+    area: 'Market Road',
+    pincode: '531173',
+    latitude: 17.8315,
+    longitude: 83.2005,
     priority: 'Medium',
-    status: 'Verified',
-    reportedBy: 'Kiran Sarma',
-    reportedByRole: 'Government Authority',
-    date: '2026-08-17'
+    status: 'Open',
+    reportedBy: 'Suresh Rao',
+    reportedByRole: 'Volunteer',
+    date: '2026-08-17',
+    time: '07:45 PM'
   },
-
   {
     id: 'VV-1028',
     category: 'Garbage Overflow',
-    description:
-      'Unattended municipal waste bin overflowing and attracting pests in commercial zone.',
+    description: 'Unattended municipal waste bin overflowing and attracting pests in commercial zone.',
     photo: null,
-    state: 'Telangana',
-    district: 'Ranga Reddy',
-    village: 'Shamshabad',
+    state: 'Andhra Pradesh',
+    district: 'Visakhapatnam',
+    village: 'Gajuwaka',
     area: 'Main Road',
-    latitude: 17.2472,
-    longitude: 78.4294,
+    pincode: '530026',
+    latitude: 17.6904,
+    longitude: 83.2185,
     priority: 'Medium',
-    status: 'Resolved',
-    reportedBy: 'Green Earth NGO',
+    status: 'Verified',
+    reportedBy: 'Green Earth Foundation',
     reportedByRole: 'NGO / Volunteer',
-    date: '2026-08-15'
+    date: '2026-08-15',
+    time: '11:20 AM'
   },
-
   {
     id: 'VV-1015',
     category: 'Drainage Problem',
-    description:
-      'Clogged storm drain backing up water onto pedestrian pathway during heavy rains.',
+    description: 'Clogged storm drain backing up water onto pedestrian pathway during heavy rains.',
     photo: null,
-    state: 'Karnataka',
-    district: 'Bengaluru Rural',
-    village: 'Devanahalli',
-    area: 'Temple Street',
-    latitude: 13.2482,
-    longitude: 77.7126,
+    state: 'Andhra Pradesh',
+    district: 'Visakhapatnam',
+    village: 'Sabbavaram',
+    area: 'Temple Road',
+    pincode: '531035',
+    latitude: 17.8010,
+    longitude: 83.1320,
     priority: 'High',
     status: 'Assigned',
-    reportedBy: 'Suresh Rao',
-    reportedByRole: 'Volunteer',
-    date: '2026-08-12'
+    reportedBy: 'Kiran Sarma',
+    reportedByRole: 'Citizen',
+    date: '2026-08-12',
+    time: '04:10 PM'
+  },
+  {
+    id: 'VV-1012',
+    category: 'Healthcare Facility',
+    description: 'Village healthcare center requires medicine restocking and first-aid support.',
+    photo: null,
+    state: 'Andhra Pradesh',
+    district: 'Visakhapatnam',
+    village: 'Padmanabham',
+    area: 'Village Square',
+    pincode: '531219',
+    latitude: 17.9860,
+    longitude: 83.3340,
+    priority: 'High',
+    status: 'Open',
+    reportedBy: 'Ananya Rao',
+    reportedByRole: 'Citizen',
+    date: '2026-08-10',
+    time: '09:05 AM'
+  },
+  {
+    id: 'VV-1008',
+    category: 'Transportation',
+    description: 'Feeder bus route frequency needed during morning and evening rush hours.',
+    photo: null,
+    state: 'Andhra Pradesh',
+    district: 'Visakhapatnam',
+    village: 'Visakhapatnam Rural',
+    area: 'Highway Junction',
+    pincode: '530045',
+    latitude: 17.7500,
+    longitude: 83.2800,
+    priority: 'Low',
+    status: 'Open',
+    reportedBy: 'Ramesh Sharma',
+    reportedByRole: 'Citizen',
+    date: '2026-08-08',
+    time: '06:30 PM'
   }
-
 ];
-
 
 // ============================================================
 // GET STORED ISSUES
 // ============================================================
-
 export function getStoredIssues() {
-
+  const defaultTimes = ['10:30 AM', '02:15 PM', '07:45 PM', '11:20 AM', '04:10 PM', '09:05 AM', '06:30 PM', '01:45 PM'];
   try {
-
     const data = localStorage.getItem(STORAGE_KEY);
-
     if (data) {
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Ensure every issue has date and distinct time
+        const withTimes = parsed.map((item, idx) => {
+          if (!item.time) {
+            return {
+              ...item,
+              time: defaultTimes[idx % defaultTimes.length]
+            };
+          }
+          return item;
+        });
+        return withTimes;
+      }
     }
-
   } catch (error) {
-
-    console.error(
-      'Failed to parse stored issues:',
-      error
-    );
-
+    console.error('Failed to parse stored issues:', error);
   }
 
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(INITIAL_DEMO_ISSUES)
-  );
-
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DEMO_ISSUES));
   return INITIAL_DEMO_ISSUES;
 }
-
 
 // ============================================================
 // SAVE NEW ISSUE
 // ============================================================
-
 export function saveIssue(newIssueData = {}) {
-
   const existing = getStoredIssues();
 
-  // Generate a safe unique issue ID
-  const maxId = existing.reduce(
-    (max, item) => {
+  // Generate safe unique issue ID
+  const maxId = existing.reduce((max, item) => {
+    const number = parseInt(String(item.id || '').replace('VV-', ''), 10);
+    return Number.isNaN(number) ? max : Math.max(max, number);
+  }, 1044);
 
-      const number = parseInt(
-        String(item.id || '').replace('VV-', ''),
-        10
-      );
-
-      return Number.isNaN(number)
-        ? max
-        : Math.max(max, number);
-
-    },
-    1044
-  );
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
   const newRecord = {
-
     id: `VV-${maxId + 1}`,
-
-    category:
-      newIssueData.category ||
-      'Other',
-
-    description:
-      newIssueData.description ||
-      '',
-
-    photo:
-      newIssueData.photo ||
-      null,
-
-    state:
-      newIssueData.state ||
-      '',
-
-    district:
-      newIssueData.district ||
-      '',
-
-    village:
-      newIssueData.village ||
-      '',
-
-    area:
-      newIssueData.area ||
-      '',
-
-    latitude:
-      Number.isFinite(
-        parseFloat(newIssueData.latitude)
-      )
-        ? parseFloat(newIssueData.latitude)
-        : 17.3542,
-
-    longitude:
-      Number.isFinite(
-        parseFloat(newIssueData.longitude)
-      )
-        ? parseFloat(newIssueData.longitude)
-        : 82.5488,
-
-    priority:
-      newIssueData.priority ||
-      'Medium',
-
-    status:
-      'Open',
-
-    reportedBy:
-      newIssueData.reportedBy ||
-      'Authenticated User',
-
-    reportedByRole:
-      newIssueData.reportedByRole ||
-      'Citizen',
-
-    date:
-      new Date()
-        .toISOString()
-        .split('T')[0]
-
+    category: newIssueData.category || 'Road Damage',
+    description: newIssueData.description || '',
+    photo: newIssueData.photo || null,
+    state: newIssueData.state || 'Andhra Pradesh',
+    district: newIssueData.district || 'Visakhapatnam',
+    village: newIssueData.village || 'Bheemunipatnam',
+    area: newIssueData.area || 'Main Road',
+    pincode: String(newIssueData.pincode || '531163').trim(),
+    latitude: Number.isFinite(parseFloat(newIssueData.latitude)) ? parseFloat(newIssueData.latitude) : 17.8912,
+    longitude: Number.isFinite(parseFloat(newIssueData.longitude)) ? parseFloat(newIssueData.longitude) : 83.4542,
+    priority: newIssueData.priority || 'Medium',
+    status: 'Open',
+    reportedBy: newIssueData.reportedBy || 'Authenticated User',
+    reportedByRole: newIssueData.reportedByRole || 'Citizen',
+    date: newIssueData.date || dateStr,
+    time: newIssueData.time || timeStr
   };
 
-  const updated = [
-    newRecord,
-    ...existing
-  ];
+  const updated = [newRecord, ...existing];
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to save issue to localStorage:', e);
+  }
 
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(updated)
-  );
-
+  notifyIssueUpdates(updated);
   return newRecord;
 }
 
+// ============================================================
+// NOTIFY REAL-TIME SUBSCRIBERS
+// ============================================================
+export const ISSUES_UPDATED_EVENT = 'villagevision_issues_updated';
+
+export function notifyIssueUpdates(issues) {
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent(ISSUES_UPDATED_EVENT, { detail: { issues } }));
+    } catch (e) {
+      console.error('Failed to dispatch issues update event:', e);
+    }
+  }
+}
+
+// ============================================================
+// SUBSCRIBE TO REAL-TIME & CROSS-TAB UPDATES
+// ============================================================
+export function subscribeToIssueUpdates(callback) {
+  if (typeof window === 'undefined' || typeof callback !== 'function') {
+    return () => {};
+  }
+
+  const handleCustomEvent = (e) => {
+    if (e?.detail?.issues) {
+      callback(e.detail.issues);
+    } else {
+      callback(getStoredIssues());
+    }
+  };
+
+  const handleStorageEvent = (e) => {
+    if (e.key === STORAGE_KEY) {
+      callback(getStoredIssues());
+    }
+  };
+
+  window.addEventListener(ISSUES_UPDATED_EVENT, handleCustomEvent);
+  window.addEventListener('storage', handleStorageEvent);
+
+  return () => {
+    window.removeEventListener(ISSUES_UPDATED_EVENT, handleCustomEvent);
+    window.removeEventListener('storage', handleStorageEvent);
+  };
+}
+
+// ============================================================
+// ATOMIC ISSUE ADOPTION (ANTI-DUPLICATE LOCK)
+// ============================================================
+export function adoptIssue(issueId, adopterUser = {}) {
+  const issues = getStoredIssues();
+  const target = issues.find(item => item.id === issueId);
+
+  if (!target) {
+    return {
+      success: false,
+      error: 'Issue not found.'
+    };
+  }
+
+  // ATOMIC CHECK: If already adopted, reject second adoption
+  if (target.adopted === true) {
+    return {
+      success: false,
+      error: `This issue is already adopted by ${target.adoptedBy || 'another organization'}.`,
+      issue: target
+    };
+  }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const adoptedAtStr = `${dateStr}, ${timeStr}`;
+
+  const adopterName = (adopterUser?.fullName || adopterUser?.name || 'NGO / Volunteer Organization').trim();
+  const adopterRole = adopterUser?.role || 'NGO / Volunteer';
+  const adopterId = adopterUser?.id || adopterUser?.email || '';
+
+  let updatedIssue = null;
+  const updated = issues.map(item => {
+    if (item.id === issueId) {
+      updatedIssue = {
+        ...item,
+        adopted: true,
+        adoptedBy: adopterName,
+        adoptedByUserId: adopterId,
+        adoptedByRole: adopterRole,
+        adoptedDate: dateStr,
+        adoptedTime: timeStr,
+        adoptedAt: adoptedAtStr,
+        status: 'Adopted'
+      };
+      return updatedIssue;
+    }
+    return item;
+  });
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to save adopted issue to localStorage:', e);
+  }
+
+  notifyIssueUpdates(updated);
+
+  return {
+    success: true,
+    issue: updatedIssue,
+    issues: updated
+  };
+}
 
 // ============================================================
 // UPDATE ISSUE STATUS
 // ============================================================
-
-export function updateIssueStatus(
-  id,
-  newStatus,
-  assignedDept = null
-) {
-
-  const existing = getStoredIssues();
-
-  const updated = existing.map(item => {
-
+export function updateIssueStatus(id, newStatus, metadata = {}) {
+  const issues = getStoredIssues();
+  const updated = issues.map(item => {
     if (item.id === id) {
-
-      return {
+      const updatedItem = {
         ...item,
-
-        status:
-          newStatus,
-
-        assignedDepartment:
-          assignedDept ||
-          item.assignedDepartment
-
+        status: newStatus,
+        updatedAt: new Date().toISOString().split('T')[0]
       };
-
+      if (typeof metadata === 'string') {
+        updatedItem.assignedDept = metadata;
+      } else if (metadata && typeof metadata === 'object') {
+        if (metadata.assignedDept) updatedItem.assignedDept = metadata.assignedDept;
+        if (metadata.resolutionNote) updatedItem.resolutionNote = metadata.resolutionNote;
+        if (metadata.assignedTo) updatedItem.assignedTo = metadata.assignedTo;
+        if (metadata.slaDays) updatedItem.slaDays = metadata.slaDays;
+        if (metadata.rejectionReason) updatedItem.rejectionReason = metadata.rejectionReason;
+      }
+      return updatedItem;
     }
-
     return item;
-
   });
 
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(updated)
-  );
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to update issue status in localStorage:', e);
+  }
 
+  notifyIssueUpdates(updated);
   return updated;
 }
 
-
 // ============================================================
-// FILTER ENGINE
-//
-// Supports:
-//
-// State
-// District
-// Village
-// Area
-// Category
-// Status
-// Priority
-// Search
+// FILTER ISSUES (VILLAGE, SEARCH, PINCODE)
 // ============================================================
-
-export function filterIssues(
-  issues,
-  filters = {}
-) {
-
-  if (!Array.isArray(issues)) {
-    return [];
-  }
+export function filterIssues(issues, filters = {}) {
+  if (!Array.isArray(issues)) return [];
 
   const {
-    state,
-    district,
-    village,
-    area,
-    category,
-    status,
-    priority,
-    search
+    village = '',
+    pincode = '',
+    search = ''
   } = filters;
 
-
-  return issues.filter(item => {
-
-    // State
-    if (
-      state &&
-      item.state !== state
-    ) {
+  return issues.filter(issue => {
+    // 1. Village / Area filter
+    if (village && village !== 'All Villages / Areas' && village !== 'All' && issue.village !== village) {
       return false;
     }
 
-
-    // District
-    if (
-      district &&
-      item.district !== district
-    ) {
-      return false;
-    }
-
-
-    // Village
-    if (
-      village &&
-      item.village !== village
-    ) {
-      return false;
-    }
-
-
-    // Area
-    if (
-      area &&
-      area.trim() &&
-      !String(item.area || '')
-        .toLowerCase()
-        .includes(
-          area.trim().toLowerCase()
-        )
-    ) {
-      return false;
-    }
-
-
-    // Category
-    if (
-      category &&
-      item.category !== category
-    ) {
-      return false;
-    }
-
-
-    // Status
-    if (
-      status &&
-      item.status !== status
-    ) {
-      return false;
-    }
-
-
-    // Priority
-    if (
-      priority &&
-      item.priority !== priority
-    ) {
-      return false;
-    }
-
-
-    // Global search
-    if (
-      search &&
-      search.trim() !== ''
-    ) {
-
-      const q =
-        search
-          .toLowerCase()
-          .trim();
-
-      const matchText = [
-
-        item.id,
-
-        item.category,
-
-        item.description,
-
-        item.village,
-
-        item.area,
-
-        item.district,
-
-        item.state,
-
-        item.reportedBy,
-
-        item.status,
-
-        item.priority
-
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-
-      if (
-        !matchText.includes(q)
-      ) {
+    // 2. Exact Pincode filter if valid 6-digit entered
+    if (pincode && pincode.trim().length === 6) {
+      if ((issue.pincode || '').trim() !== pincode.trim()) {
         return false;
       }
-
     }
 
+    // 3. Search query (matches Category, Description, Village, Area, ID, Pincode)
+    if (search && search.trim()) {
+      const q = search.toLowerCase().trim();
+      const match =
+        (issue.id || '').toLowerCase().includes(q) ||
+        (issue.category || '').toLowerCase().includes(q) ||
+        (issue.description || '').toLowerCase().includes(q) ||
+        (issue.village || '').toLowerCase().includes(q) ||
+        (issue.area || '').toLowerCase().includes(q) ||
+        (issue.pincode || '').toLowerCase().includes(q) ||
+        (issue.reportedBy || '').toLowerCase().includes(q);
+
+      if (!match) return false;
+    }
 
     return true;
-
   });
-
 }
 
-
 // ============================================================
-// HELPER FUNCTIONS
-// Useful for dropdowns and filters
+// LOCATION QUERY HELPERS (VISAKHAPATNAM ONLY)
 // ============================================================
-
-export function getStates() {
-
-  return Object.keys(
-    LOCATION_HIERARCHY
-  ).sort();
-
+export function getAllStates() {
+  return ['Andhra Pradesh'];
 }
-
 
 export function getDistricts(state) {
-
-  if (
-    !state ||
-    !LOCATION_HIERARCHY[state]
-  ) {
-    return [];
-  }
-
-  return Object.keys(
-    LOCATION_HIERARCHY[state]
-  ).sort();
-
+  return ['Visakhapatnam'];
 }
 
-
-export function getVillages(
-  state,
-  district
-) {
-
-  if (
-    !state ||
-    !district ||
-    !LOCATION_HIERARCHY[state] ||
-    !LOCATION_HIERARCHY[state][district]
-  ) {
-    return [];
-  }
-
-  return [
-    ...LOCATION_HIERARCHY[state][district]
-  ].sort();
-
-}
-
-
-// ============================================================
-// ADD CUSTOM LOCATION
-//
-// Allows your UI to support:
-//
-// + Add District
-// + Add Village
-//
-// This updates the browser's current session data.
-// ============================================================
-
-export function addCustomLocation(
-  state,
-  district,
-  village
-) {
-
-  if (!state) {
-    return false;
-  }
-
-  if (!LOCATION_HIERARCHY[state]) {
-    LOCATION_HIERARCHY[state] = {};
-  }
-
-  if (
-    district &&
-    !LOCATION_HIERARCHY[state][district]
-  ) {
-
-    LOCATION_HIERARCHY[state][district] = [
-      'Other'
-    ];
-
-  }
-
-  if (
-    district &&
-    village
-  ) {
-
-    const villages =
-      LOCATION_HIERARCHY[state][district];
-
-    if (
-      !villages.includes(village)
-    ) {
-
-      const otherIndex =
-        villages.indexOf('Other');
-
-      if (otherIndex >= 0) {
-
-        villages.splice(
-          otherIndex,
-          0,
-          village
-        );
-
-      } else {
-
-        villages.push(village);
-
-      }
-
-    }
-
-  }
-
-  return true;
+export function getVillages(state, district) {
+  return [...VISAKHAPATNAM_VILLAGES];
 }

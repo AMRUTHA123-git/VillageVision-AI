@@ -4,8 +4,8 @@ import { Bell, CheckCircle2, AlertCircle, Info, Trash2 } from 'lucide-react';
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([
     { id: 1, type: 'status', title: 'Report Status Updated', desc: 'Your Road Damage report (VV-1042) status was updated to "In Progress".', date: '2026-08-19 10:15 AM', read: false },
-    { id: 2, type: 'alert', title: 'New Community Issue Near You', desc: 'A Water Leakage report was submitted in Sector 4, Tuni.', date: '2026-08-18 04:30 PM', read: false },
-    { id: 3, type: 'info', title: 'AI Hotspot Summary Ready', desc: 'Monthly AI trend analysis report for Kakinada district is ready for review.', date: '2026-08-16 09:00 AM', read: true }
+    { id: 2, type: 'alert', title: 'New Community Issue Near You', desc: 'A Water Leakage report was submitted in Sector 3, Gajuwaka.', date: '2026-08-18 04:30 PM', read: false },
+    { id: 3, type: 'info', title: 'AI Hotspot Summary Ready', desc: 'Monthly AI trend analysis report for Visakhapatnam district is ready for review.', date: '2026-08-16 09:00 AM', read: true }
   ]);
 
   const markAllRead = () => {
@@ -25,7 +25,7 @@ export default function NotificationsPage() {
           <h1 className="hero-title" style={{ fontSize: '2rem', textAlign: 'left', marginBottom: '0.25rem' }}>
             Notification <span className="gradient-text">Center</span>
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.98rem' }}>
+          <p style={{ color: '#64748b', fontSize: '0.98rem' }}>
             Stay updated on issue verification, status changes, and community alerts.
           </p>
         </div>
@@ -41,8 +41,8 @@ export default function NotificationsPage() {
             <div 
               key={n.id}
               style={{
-                background: n.read ? 'rgba(255, 255, 255, 0.02)' : 'rgba(16, 185, 129, 0.08)',
-                border: n.read ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid var(--border-color)',
+                background: n.read ? '#f8fafc' : '#ecfdf5',
+                border: n.read ? '1.5px solid #e2e8f0' : '1.5px solid #a7f3d0',
                 borderRadius: '14px',
                 padding: '1.25rem',
                 display: 'flex',
@@ -56,8 +56,8 @@ export default function NotificationsPage() {
                   width: '38px',
                   height: '38px',
                   borderRadius: '50%',
-                  background: n.read ? 'rgba(255, 255, 255, 0.05)' : 'rgba(16, 185, 129, 0.2)',
-                  color: n.read ? '#94a3b8' : 'var(--primary-teal)',
+                  background: n.read ? '#e2e8f0' : '#d1fae5',
+                  color: n.read ? '#64748b' : '#059669',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -66,13 +66,13 @@ export default function NotificationsPage() {
                   <Bell size={18} />
                 </div>
                 <div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', marginBottom: '0.25rem' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.25rem' }}>
                     {n.title}
                   </h4>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--text-light)', lineHeight: '1.5' }}>
+                  <p style={{ fontSize: '0.9rem', color: '#334155', lineHeight: '1.5' }}>
                     {n.desc}
                   </p>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.4rem', display: 'block' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.4rem', display: 'block', fontWeight: 500 }}>
                     {n.date}
                   </span>
                 </div>
