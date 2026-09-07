@@ -31,6 +31,13 @@ export default function DashboardLayout({
   return (
     <div className="dashboard-wrapper">
       
+      {/* MOBILE / TABLET SIDEBAR BACKDROP */}
+      <div 
+        className={`sidebar-backdrop ${sidebarOpen ? 'open' : ''}`} 
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
+
       {/* SIDEBAR NAVIGATION */}
       <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">

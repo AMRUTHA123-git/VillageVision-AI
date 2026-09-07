@@ -209,7 +209,7 @@ export default function SignUpPage({ onNavigateToLogin, onSignUpSuccess }) {
             </div>
 
             {/* TWO COLUMN ROW: PASSWORD & CONFIRM PASSWORD */}
-            <div className="dash-two-col" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div className="form-two-col" style={{ marginBottom: '1rem' }}>
               
               {/* FIELD 3: PASSWORD */}
               <div>

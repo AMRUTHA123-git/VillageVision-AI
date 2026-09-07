@@ -326,7 +326,7 @@ export default function NGODashboard({ user, onLogout }) {
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: '1.25rem' }}>
                 {adoptedIssues.map(issue => {
                   const isResolved = issue.status === 'Resolved' || issue.resolved === true;
                   return (
@@ -365,7 +365,7 @@ export default function NGODashboard({ user, onLogout }) {
 
                         {/* PHOTO COMPARISON (BEFORE PHOTO & AFTER PHOTO) */}
                         <div style={{ marginBottom: '0.85rem' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                          <div className="photo-compare-grid">
                             {/* Before Photo */}
                             <div style={{ background: '#f8fafc', padding: '0.45rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                               <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#dc2626', display: 'block', marginBottom: '0.2rem' }}>
@@ -578,7 +578,7 @@ export default function NGODashboard({ user, onLogout }) {
             </div>
 
             {/* TWO COLUMN WORKSPACE */}
-            <div className="dash-two-col" style={{ gridTemplateColumns: '1.4fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div className="dash-two-col" style={{ marginBottom: '1.5rem' }}>
               
               {/* PROBLEMS NEEDING NGO SUPPORT */}
               <div className="dash-card">
@@ -784,7 +784,7 @@ export default function NGODashboard({ user, onLogout }) {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div className="form-two-col" style={{ marginBottom: '1rem' }}>
                 <div className="form-group">
                   <label className="input-label-bold">Target Village</label>
                   <select
@@ -811,7 +811,7 @@ export default function NGODashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div className="form-two-col" style={{ marginBottom: '1rem' }}>
                 <div className="form-group">
                   <label className="input-label-bold">Drive Date</label>
                   <input

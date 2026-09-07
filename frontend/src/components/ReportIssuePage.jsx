@@ -287,7 +287,7 @@ export default function ReportIssuePage({ user, onNavigate }) {
               <PlusCircle size={20} style={{ color: '#059669' }} /> 1. Problem Information
             </div>
 
-            <div className="dash-two-col" style={{ gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+            <div className="form-two-col" style={{ marginBottom: '1.25rem' }}>
               
               {/* Category Selection */}
               <div className="form-group">
@@ -367,7 +367,7 @@ export default function ReportIssuePage({ user, onNavigate }) {
             </div>
 
             {/* Location Fields Grid */}
-            <div className="dash-two-col" style={{ gridTemplateColumns: '1fr 1fr 1.2fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div className="form-four-col" style={{ marginBottom: '1.25rem' }}>
               
               {/* Village / Area */}
               <div className="form-group">

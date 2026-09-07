@@ -141,14 +141,14 @@ export default function CommunityMapPage() {
             className="form-input" 
             value={selectedVillage} 
             onChange={(e) => setSelectedVillage(e.target.value)}
-            style={{ minWidth: '220px', background: '#f8fafc' }}
+            style={{ minWidth: 'min(220px, 100%)', background: '#f8fafc' }}
           >
             <option value="All Villages / Areas">📍 All Villages / Areas</option>
             {VISAKHAPATNAM_VILLAGES.map(v => <option key={v} value={v}>📍 {v}</option>)}
           </select>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.85rem', fontWeight: 700 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.85rem', fontWeight: 700, flexWrap: 'wrap' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#dc2626' }}>
             🔴 High Priority
           </span>
@@ -162,7 +162,7 @@ export default function CommunityMapPage() {
       </div>
 
       {/* LEAFLET INTERACTIVE MAP CONTAINER */}
-      <div className="dash-card" style={{ padding: 0, overflow: 'hidden', height: '520px', marginBottom: '2rem', border: '1.5px solid #e2e8f0', borderRadius: '18px' }}>
+      <div className="dash-card map-card-container" style={{ padding: 0, overflow: 'hidden', height: '500px', minHeight: '320px', marginBottom: '2rem', border: '1.5px solid #e2e8f0', borderRadius: '18px' }}>
         <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
           <MapAutoCenter issues={filteredIssues} />
           <TileLayer

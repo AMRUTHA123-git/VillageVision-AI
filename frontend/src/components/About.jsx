@@ -40,7 +40,7 @@ export default function About() {
               "To transform rural communities into smart, connected, and self-sustaining ecosystems where every citizen's voice is heard and every public issue is addressed with speed and accountability."
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-two-col">
               <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
                 <Zap size={22} style={{ color: '#059669', marginBottom: '0.5rem' }} />
                 <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>Instant Triage</div>

@@ -172,7 +172,7 @@ export default function CitizenDashboard({ user, onLogout }) {
         return (
           <>
             {/* 1. OVERVIEW STAT CARDS (4 Cards) */}
-            <div className="dash-stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            <div className="dash-stats-grid" style={{ marginBottom: '1.5rem' }}>
               
               {/* Total Reports */}
               <div className="dash-stat-card">
@@ -226,7 +226,7 @@ export default function CitizenDashboard({ user, onLogout }) {
                 Quick Actions
               </h3>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+              <div className="quick-actions-grid">
                 
                 {/* Action 1: Report Issue */}
                 <button
@@ -398,7 +398,7 @@ export default function CitizenDashboard({ user, onLogout }) {
             </div>
 
             {/* 4. TWO-COLUMN: COMMUNITY INSIGHTS & DEVELOPMENT OPPORTUNITIES PREVIEW */}
-            <div className="dash-two-col" style={{ gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div className="dash-two-col" style={{ marginBottom: '1.5rem' }}>
               
               {/* Community Insights Preview (Visakhapatnam Focused) */}
               <div className="dash-card">

@@ -755,7 +755,7 @@ export default function CommunityIssuesPage({ user }) {
       {/* 2. SEARCH & LOCATION SECTION */}
       <div className="dash-card" style={{ marginBottom: '1.75rem', padding: '1.5rem', background: '#ffffff', border: '1px solid #e2e8f0' }}>
         
-        <div className="dash-two-col" style={{ gridTemplateColumns: '1.2fr 2fr 1.2fr', gap: '1.25rem', alignItems: 'flex-start' }}>
+        <div className="filter-bar-grid">
           
           {/* Village / Area Dropdown */}
           <div className="form-group" style={{ margin: 0 }}>
@@ -838,7 +838,7 @@ export default function CommunityIssuesPage({ user }) {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: '1.25rem' }}>
         {displayIssues.map((issue) => (
           <div 
             key={issue.id} 
@@ -879,7 +879,7 @@ export default function CommunityIssuesPage({ user }) {
               {/* Photo Preview / Comparison if attached */}
               {issue.status === 'Resolved' || issue.resolved ? (
                 <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                  <div className="photo-compare-grid">
                     <div>
                       <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#dc2626', display: 'block', marginBottom: '0.15rem' }}>BEFORE</span>
                       {issue.beforePhoto || issue.photo ? (

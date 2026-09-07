@@ -120,7 +120,7 @@ export default function MyReportsPage({ user, onNavigate }) {
                     <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#166534', marginBottom: '0.35rem' }}>
                       📸 Resolution Verification Photos:
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                    <div className="photo-compare-grid">
                       {/* Before Photo */}
                       <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                         <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#dc2626', display: 'block', marginBottom: '0.25rem' }}>

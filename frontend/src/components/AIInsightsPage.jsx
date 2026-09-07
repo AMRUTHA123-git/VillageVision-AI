@@ -327,7 +327,7 @@ export default function AIInsightsPage() {
       </div>
 
       {/* SECTION 2: PROBLEM BREAKDOWN & HOTSPOTS */}
-      <div className="dash-two-col" style={{ gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+      <div className="dash-two-col" style={{ marginBottom: '1.5rem' }}>
         
         {/* Most Reported Problems in Visakhapatnam */}
         <div className="dash-card">

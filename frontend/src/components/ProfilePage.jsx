@@ -268,7 +268,7 @@ export default function ProfilePage({ user, onLogout, onDeleteAccount }) {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
