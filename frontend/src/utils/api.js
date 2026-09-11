@@ -27,7 +27,13 @@ const API_BASE = getApiBase();
  * Universal JSON Fetch Helper with error parsing and timeout protection
  */
 async function request(endpoint, options = {}) {
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  
+  // Guard against duplicate /api prefix when API_BASE already includes /api
+  if (API_BASE.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
+    cleanEndpoint = cleanEndpoint.substring(4);
+  }
+
   const url = `${API_BASE}${cleanEndpoint}`;
   
   const headers = {

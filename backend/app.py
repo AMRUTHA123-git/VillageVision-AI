@@ -6,14 +6,31 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
-# Enable CORS for all routes so frontend (local port 3000, Vercel, or custom domains) can communicate smoothly
+
+# Configure CORS: Allow Vercel frontend URL(s) from environment variable, or allow regex matching *.vercel.app + localhost
+frontend_env = os.environ.get('FRONTEND_URL', '') or os.environ.get('ALLOWED_ORIGINS', '')
+if frontend_env and frontend_env.strip() != '*':
+    allowed_origins = [orig.strip().rstrip('/') for orig in frontend_env.split(',') if orig.strip()]
+    # Ensure local development is always permitted alongside production frontend
+    for loc in ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173']:
+        if loc not in allowed_origins:
+            allowed_origins.append(loc)
+else:
+    # Allow all Vercel preview/production deployments and local dev
+    allowed_origins = [
+        r"^https:\/\/.*\.vercel\.app$",
+        r"^http:\/\/localhost:\d+$",
+        r"^http:\/\/127\.0\.0\.1:\d+$",
+        "*"
+    ]
+
 CORS(app, resources={r"/*": {
-    "origins": "*",
+    "origins": allowed_origins,
     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
-}})
+}}, supports_credentials=True)
 
-DATABASE_PATH = os.path.join(os.path.dirname(__file__), 'village_vision.db')
+DATABASE_PATH = os.environ.get('DATABASE_PATH') or os.path.join(os.path.dirname(__file__), 'village_vision.db')
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE_PATH)
@@ -767,9 +784,16 @@ def resolve_issue(issue_id):
         "issue": format_issue_row(updated_row)
     }), 200
 
-if __name__ == '__main__':
+# Unconditionally initialize database on module import (supports Gunicorn, WSGI, Serverless)
+try:
     init_db()
     print("Database initialized successfully.")
-    print("Starting VillageVision AI Flask Backend on http://127.0.0.1:5000")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+except Exception as e:
+    print(f"Warning during database initialization: {e}")
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_DEBUG', 'False').lower() in ('true', '1')
+    print(f"Starting VillageVision AI Flask Backend on port {port}")
+    app.run(host='0.0.0.0', port=port, debug=debug)
 
