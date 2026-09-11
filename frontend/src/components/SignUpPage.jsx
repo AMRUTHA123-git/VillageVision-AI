@@ -98,7 +98,7 @@ export default function SignUpPage({ onNavigateToLogin, onSignUpSuccess }) {
     setIsLoading(true);
 
     // Register user account in authManager
-    const regResult = registerAccount({
+    const regResult = await registerAccount({
       fullName: fullName.trim(),
       email: trimmedEmail,
       mobileNumber: '',

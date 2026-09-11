@@ -38,16 +38,24 @@ import {
 
 import { 
   getStoredIssues, 
+  fetchIssuesFromBackend,
   adoptIssue, 
   addAfterPhoto,
   resolveIssue,
   subscribeToIssueUpdates, 
-  VISAKHAPATNAM_VILLAGES 
+  VISAKHAPATNAM_VILLAGES,
+  getMyAdoptedIssues
 } from '../../utils/issueData';
 
 export default function NGODashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [allIssues, setAllIssues] = useState([]);
+  const [selectedMapIssueId, setSelectedMapIssueId] = useState(null);
+
+  const handleNavigate = (tab, issueId = null) => {
+    setSelectedMapIssueId(issueId);
+    setActiveTab(tab);
+  };
 
   // Modal States
   const [activeModal, setActiveModal] = useState(null); // 'adopt' | 'new-drive'
@@ -99,6 +107,13 @@ export default function NGODashboard({ user, onLogout }) {
   useEffect(() => {
     setAllIssues(getStoredIssues());
 
+    // Fetch fresh from backend SQLite
+    fetchIssuesFromBackend().then(fresh => {
+      if (Array.isArray(fresh)) {
+        setAllIssues(fresh);
+      }
+    }).catch(() => {});
+
     const unsubscribe = subscribeToIssueUpdates((latestIssues) => {
       setAllIssues(latestIssues);
     });
@@ -111,18 +126,18 @@ export default function NGODashboard({ user, onLogout }) {
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <HeartHandshake size={18} /> },
     { id: 'community-issues', label: 'Community Issues', icon: <Layers size={18} /> },
-    { id: 'adopted-issues', label: 'Adopted Issues', icon: <Target size={18} /> },
+    { id: 'adopted-issues', label: 'My Adopted Issues', icon: <Target size={18} /> },
     { id: 'map', label: 'Community Map', icon: <Map size={18} /> },
     { id: 'impact', label: 'AI Insights', icon: <Award size={18} /> },
     { id: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
     { id: 'profile', label: 'Profile', icon: <User size={18} /> }
   ];
 
-  // Calculated Metrics
+  // Calculated Metrics (Strictly scoped: community metrics for global view, personal adoption metrics for authenticated NGO)
   const totalIssuesCount = allIssues.length;
   const openIssues = allIssues.filter(issue => issue.status === 'Open' || (!issue.status && !issue.adopted));
   const highPriorityIssues = allIssues.filter(issue => (issue.priority || '').toLowerCase() === 'high' && issue.status !== 'Resolved');
-  const adoptedIssues = allIssues.filter(issue => issue.adopted === true);
+  const myAdoptedIssues = getMyAdoptedIssues(user, allIssues);
 
   // Quick Adopt Handler
   const handleOpenAdoptModal = (issue) => {
@@ -130,11 +145,11 @@ export default function NGODashboard({ user, onLogout }) {
     setActiveModal('adopt');
   };
 
-  const handleConfirmAdopt = (e) => {
+  const handleConfirmAdopt = async (e) => {
     if (e) e.preventDefault();
     if (!selectedIssueToAdopt) return;
 
-    const res = adoptIssue(selectedIssueToAdopt.id, user);
+    const res = await adoptIssue(selectedIssueToAdopt.id, user);
 
     if (res.success) {
       setAdoptNotification(`✓ Successfully adopted issue ${selectedIssueToAdopt.id}!`);
@@ -189,7 +204,7 @@ export default function NGODashboard({ user, onLogout }) {
     setResolutionError('');
   };
 
-  const handleSaveAfterPhotoOnly = (e) => {
+  const handleSaveAfterPhotoOnly = async (e) => {
     if (e) e.preventDefault();
     setResolutionError('');
 
@@ -201,7 +216,7 @@ export default function NGODashboard({ user, onLogout }) {
     }
 
     setIsSubmittingResolution(true);
-    const res = addAfterPhoto(resolvingIssue.id, solutionPhoto, {
+    const res = await addAfterPhoto(resolvingIssue.id, solutionPhoto, {
       solutionDescription,
       updatedByUser: user
     });
@@ -220,7 +235,7 @@ export default function NGODashboard({ user, onLogout }) {
     }, 6000);
   };
 
-  const handleSubmitResolution = (e) => {
+  const handleSubmitResolution = async (e) => {
     if (e) e.preventDefault();
     setResolutionError('');
 
@@ -234,7 +249,7 @@ export default function NGODashboard({ user, onLogout }) {
 
     setIsSubmittingResolution(true);
 
-    const res = resolveIssue(resolvingIssue.id, {
+    const res = await resolveIssue(resolvingIssue.id, {
       solutionPhoto: photoToUse,
       solutionDescription,
       resolvedByUser: user
@@ -278,17 +293,17 @@ export default function NGODashboard({ user, onLogout }) {
   const renderContent = () => {
     switch (activeTab) {
       case 'community-issues':
-        return <CommunityIssuesPage user={user} />;
+        return <CommunityIssuesPage user={user} onNavigate={handleNavigate} />;
 
       case 'map':
-        return <CommunityMapPage />;
+        return <CommunityMapPage highlightIssueId={selectedMapIssueId} onClearHighlight={() => setSelectedMapIssueId(null)} />;
 
       case 'impact':
       case 'insights':
         return <AIInsightsPage />;
 
       case 'notifications':
-        return <NotificationsPage />;
+        return <NotificationsPage user={user} onNavigate={handleNavigate} />;
 
       case 'profile':
         return <ProfilePage user={user} onLogout={onLogout} />;
@@ -303,10 +318,10 @@ export default function NGODashboard({ user, onLogout }) {
             <div className="dash-card-header" style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <h1 className="hero-title" style={{ fontSize: '1.85rem', textAlign: 'left', marginBottom: '0.25rem', color: '#0f172a' }}>
-                  Adopted <span className="gradient-text">Community Issues</span>
+                  My Adopted <span className="gradient-text">Community Issues</span>
                 </h1>
                 <p style={{ color: '#64748b', fontSize: '0.95rem', margin: 0 }}>
-                  Civic problems adopted and actively supported by NGO / Volunteer organizations across Visakhapatnam.
+                  Civic problems adopted and actively supported by your organization ({user?.fullName || 'NGO / Volunteer'}).
                 </p>
               </div>
               <button className="btn btn-primary btn-sm" onClick={() => setActiveTab('community-issues')}>
@@ -314,12 +329,12 @@ export default function NGODashboard({ user, onLogout }) {
               </button>
             </div>
 
-            {adoptedIssues.length === 0 ? (
+            {myAdoptedIssues.length === 0 ? (
               <div className="dash-card empty-state-box" style={{ padding: '3.5rem 2rem', textAlign: 'center' }}>
                 <Target size={48} style={{ color: '#059669', margin: '0 auto 1rem' }} />
                 <h3 style={{ color: '#0f172a', fontWeight: 800, fontSize: '1.25rem' }}>No Adopted Issues Yet</h3>
                 <p style={{ color: '#64748b', marginTop: '0.4rem', maxWidth: '460px', margin: '0.4rem auto 1.5rem' }}>
-                  Explore open grievances reported by citizens in Visakhapatnam to adopt and coordinate community interventions.
+                  You have not adopted any community issues yet. Explore open grievances reported by citizens in Visakhapatnam to adopt and coordinate community interventions.
                 </p>
                 <button className="btn btn-primary" onClick={() => setActiveTab('community-issues')}>
                   <Layers size={18} /> Explore Community Issues
@@ -327,7 +342,7 @@ export default function NGODashboard({ user, onLogout }) {
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: '1.25rem' }}>
-                {adoptedIssues.map(issue => {
+                {myAdoptedIssues.map(issue => {
                   const isResolved = issue.status === 'Resolved' || issue.resolved === true;
                   return (
                     <div 
@@ -373,11 +388,16 @@ export default function NGODashboard({ user, onLogout }) {
                               </span>
                               {issue.beforePhoto || issue.photo ? (
                                 <div style={{ borderRadius: '8px', overflow: 'hidden', height: '115px', background: '#0f172a' }}>
-                                  <img src={issue.beforePhoto || issue.photo} alt="Before problem" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <img 
+                                    src={issue.beforePhoto || issue.photo} 
+                                    alt={`Before problem ${issue.id}`} 
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                  />
                                 </div>
                               ) : (
-                                <div style={{ borderRadius: '8px', background: '#ffffff', border: '1px dashed #cbd5e1', height: '115px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.74rem', color: '#94a3b8' }}>
-                                  No Before Photo
+                                <div style={{ borderRadius: '8px', background: '#ffffff', border: '1px dashed #cbd5e1', height: '115px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '0.74rem', color: '#94a3b8', gap: '0.2rem', padding: '0.25rem', textAlign: 'center' }}>
+                                  <ImageOff size={16} />
+                                  <span>No before photo uploaded yet</span>
                                 </div>
                               )}
                             </div>
@@ -389,12 +409,16 @@ export default function NGODashboard({ user, onLogout }) {
                               </span>
                               {issue.afterPhoto ? (
                                 <div style={{ borderRadius: '8px', overflow: 'hidden', height: '115px', background: '#0f172a', border: '1px solid #86efac' }}>
-                                  <img src={issue.afterPhoto} alt="After Solution" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <img 
+                                    src={issue.afterPhoto} 
+                                    alt={`After solution ${issue.id}`} 
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                  />
                                 </div>
                               ) : (
                                 <div 
                                   onClick={(e) => handleOpenAddAfterPhotoModal(issue, e)}
-                                  style={{ borderRadius: '8px', background: '#ffffff', border: '1px dashed #94a3b8', height: '115px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', color: '#059669', cursor: 'pointer', padding: '0.3rem', textAlign: 'center', fontWeight: 700 }}
+                                  style={{ borderRadius: '8px', background: '#ffffff', border: '1px dashed #059669', height: '115px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', color: '#059669', cursor: 'pointer', padding: '0.3rem', textAlign: 'center', fontWeight: 700 }}
                                 >
                                   <Camera size={20} style={{ marginBottom: '0.25rem' }} />
                                   <span>+ Add After Photo</span>
@@ -477,11 +501,18 @@ export default function NGODashboard({ user, onLogout }) {
                           </button>
                         )}
                         <button 
+                          className="btn btn-outline btn-sm"
+                          onClick={() => handleNavigate('map', issue.id)}
+                          style={{ justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', color: '#2563eb', borderColor: '#bfdbfe', background: '#eff6ff', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Map size={14} /> View in Map
+                        </button>
+                        <button 
                           className="btn btn-secondary btn-sm"
-                          onClick={() => setActiveTab('community-issues')}
+                          onClick={() => handleNavigate('community-issues')}
                           style={{ justifyContent: 'center', fontWeight: 700 }}
                         >
-                          View &rarr;
+                          Details &rarr;
                         </button>
                       </div>
                     </div>
@@ -566,12 +597,12 @@ export default function NGODashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* 4. Adopted Issues */}
+              {/* 4. My Adopted Issues */}
               <div className="dash-stat-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('adopted-issues')}>
                 <div className="stat-icon-wrapper green"><Target size={22} /></div>
                 <div>
-                  <div className="dash-stat-val">{adoptedIssues.length}</div>
-                  <div className="dash-stat-lbl">Adopted Issues</div>
+                  <div className="dash-stat-val">{myAdoptedIssues.length}</div>
+                  <div className="dash-stat-lbl">My Adopted Issues</div>
                 </div>
               </div>
 
@@ -633,12 +664,12 @@ export default function NGODashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* RECENTLY ADOPTED ISSUES */}
+              {/* MY ADOPTED ISSUES */}
               <div className="dash-card">
                 <div className="dash-card-header" style={{ marginBottom: '1rem' }}>
                   <div>
                     <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                      Recently Adopted Issues
+                      My Adopted Issues
                     </h3>
                     <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Active adoptions</span>
                   </div>
@@ -648,7 +679,7 @@ export default function NGODashboard({ user, onLogout }) {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {adoptedIssues.slice(0, 4).map(item => (
+                  {myAdoptedIssues.slice(0, 4).map(item => (
                     <div key={item.id} style={{ background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', marginBottom: '0.2rem' }}>
                         <strong style={{ color: '#0f172a' }}>{item.category} ({item.id})</strong>
@@ -663,9 +694,9 @@ export default function NGODashboard({ user, onLogout }) {
                     </div>
                   ))}
 
-                  {adoptedIssues.length === 0 && (
+                  {myAdoptedIssues.length === 0 && (
                     <p style={{ color: '#64748b', fontSize: '0.88rem', margin: '0.5rem 0' }}>
-                      No community issues have been adopted yet.
+                      You have not adopted any community issues yet.
                     </p>
                   )}
                 </div>
@@ -913,9 +944,13 @@ export default function NGODashboard({ user, onLogout }) {
                 <label className="input-label-bold" style={{ display: 'block', marginBottom: '0.4rem' }}>
                   1. Before Photo (Original Citizen Report)
                 </label>
-                {resolvingIssue.photo ? (
+                {resolvingIssue.beforePhoto || resolvingIssue.photo ? (
                   <div style={{ width: '100%', height: '130px', borderRadius: '10px', overflow: 'hidden', background: '#0f172a', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
-                    <img src={resolvingIssue.photo} alt="Before problem" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img 
+                      src={resolvingIssue.beforePhoto || resolvingIssue.photo} 
+                      alt={`Before problem ${resolvingIssue.id}`} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
                   </div>
                 ) : (
                   <div style={{ padding: '0.75rem', borderRadius: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem', marginBottom: '1rem' }}>

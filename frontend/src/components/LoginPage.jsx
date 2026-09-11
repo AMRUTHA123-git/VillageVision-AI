@@ -75,7 +75,7 @@ export default function LoginPage({
     setIsLoading(true);
 
     // Strict Authentication Validation
-    const authResult = authenticateUser({
+    const authResult = await authenticateUser({
       email: trimmedEmail,
       password: password,
       role: selectedRole

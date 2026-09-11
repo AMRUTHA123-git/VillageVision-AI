@@ -30,15 +30,17 @@ import {
 } from 'lucide-react';
 import { 
   getStoredIssues, 
+  fetchIssuesFromBackend,
   filterIssues, 
   VISAKHAPATNAM_VILLAGES, 
   adoptIssue, 
   addAfterPhoto,
   resolveIssue,
-  subscribeToIssueUpdates 
+  subscribeToIssueUpdates,
+  isIssueAdoptedByNGO 
 } from '../utils/issueData';
 
-export default function CommunityIssuesPage({ user }) {
+export default function CommunityIssuesPage({ user, onNavigate }) {
   const [issues, setIssues] = useState([]);
   const [selectedVillage, setSelectedVillage] = useState('All Villages / Areas');
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,8 +63,15 @@ export default function CommunityIssuesPage({ user }) {
   const isNGOUser = user?.role === 'NGO' || user?.role === 'NGO / Volunteer' || user?.role === 'Volunteer';
 
   useEffect(() => {
-    // Initial load
+    // Initial load from storage cache
     setIssues(getStoredIssues());
+
+    // Fetch fresh from backend SQLite
+    fetchIssuesFromBackend().then(fresh => {
+      if (Array.isArray(fresh)) {
+        setIssues(fresh);
+      }
+    }).catch(() => {});
 
     // Subscribe to real-time events & storage changes across sessions/tabs
     const unsubscribe = subscribeToIssueUpdates((latestIssues) => {
@@ -158,10 +167,10 @@ export default function CommunityIssuesPage({ user }) {
   };
 
   // Execute atomic adoption
-  const handleConfirmAdopt = () => {
+  const handleConfirmAdopt = async () => {
     if (!confirmingAdoptIssue) return;
 
-    const res = adoptIssue(confirmingAdoptIssue.id, user);
+    const res = await adoptIssue(confirmingAdoptIssue.id, user);
 
     if (res.success) {
       setAdoptionSuccessMessage(`✓ Issue ${confirmingAdoptIssue.id} successfully adopted by ${user?.fullName || 'you'}!`);
@@ -199,7 +208,7 @@ export default function CommunityIssuesPage({ user }) {
     }
   };
 
-  const handleSaveAfterPhotoOnly = (e) => {
+  const handleSaveAfterPhotoOnly = async (e) => {
     if (e) e.preventDefault();
     setResolutionError('');
 
@@ -211,7 +220,7 @@ export default function CommunityIssuesPage({ user }) {
     }
 
     setIsSubmittingResolution(true);
-    const res = addAfterPhoto(resolvingIssue.id, solutionPhoto, {
+    const res = await addAfterPhoto(resolvingIssue.id, solutionPhoto, {
       solutionDescription,
       updatedByUser: user
     });
@@ -233,7 +242,7 @@ export default function CommunityIssuesPage({ user }) {
     }, 6000);
   };
 
-  const handleSubmitResolution = (e) => {
+  const handleSubmitResolution = async (e) => {
     e.preventDefault();
     setResolutionError('');
 
@@ -247,7 +256,7 @@ export default function CommunityIssuesPage({ user }) {
 
     setIsSubmittingResolution(true);
 
-    const res = resolveIssue(resolvingIssue.id, {
+    const res = await resolveIssue(resolvingIssue.id, {
       solutionPhoto: photoToUse,
       solutionDescription,
       resolvedByUser: user
@@ -395,7 +404,7 @@ export default function CommunityIssuesPage({ user }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#16a34a', fontWeight: 800, fontSize: '1.05rem' }}>
                   <CheckCircle2 size={20} /> ✓ Adopted Community Issue
                 </div>
-                {isNGOUser && (
+                {isNGOUser && isIssueAdoptedByNGO(selectedIssue, user) && (
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <button
                       className="btn btn-primary btn-sm"
@@ -443,81 +452,69 @@ export default function CommunityIssuesPage({ user }) {
             )
           )}
 
-          {/* PHOTO SECTION (COMPARATIVE VIEW IF RESOLVED) */}
+          {/* PHOTO SECTION (BEFORE & AFTER COMPARISON MAPPED TO THIS ISSUE) */}
           <div style={{ marginBottom: '1.75rem' }}>
-            {selectedIssue.status === 'Resolved' || selectedIssue.resolved ? (
-              <div>
-                <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: 800, marginBottom: '0.75rem' }}>
-                  Resolution Verification Photos (Before & After Comparison)
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-                  {/* Before Photo */}
-                  <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <strong style={{ color: '#dc2626', fontSize: '0.85rem' }}>🔴 BEFORE (Reported Problem)</strong>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{selectedIssue.date}</span>
-                    </div>
-                    {selectedIssue.beforePhoto || selectedIssue.photo ? (
-                      <div style={{ height: '240px', borderRadius: '10px', overflow: 'hidden', background: '#0f172a' }}>
-                        <img 
-                          src={selectedIssue.beforePhoto || selectedIssue.photo} 
-                          alt="Before problem" 
-                          style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-                        />
-                      </div>
-                    ) : (
-                      <div style={{ height: '240px', borderRadius: '10px', background: '#ffffff', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
-                        <ImageOff size={32} style={{ marginBottom: '0.5rem' }} />
-                        <span>No Before Photo Uploaded</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* After Photo */}
-                  <div style={{ background: '#f0fdf4', border: '2px solid #86efac', borderRadius: '14px', padding: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <strong style={{ color: '#16a34a', fontSize: '0.85rem' }}>🟢 AFTER SOLUTION ✓ (Verified Result)</strong>
-                      <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 700 }}>{selectedIssue.resolvedDate}</span>
-                    </div>
-                    {selectedIssue.afterPhoto ? (
-                      <div style={{ height: '240px', borderRadius: '10px', overflow: 'hidden', background: '#0f172a', border: '1px solid #86efac' }}>
-                        <img 
-                          src={selectedIssue.afterPhoto} 
-                          alt="After solution" 
-                          style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-                        />
-                      </div>
-                    ) : (
-                      <div style={{ height: '240px', borderRadius: '10px', background: '#ffffff', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
-                        <ImageOff size={32} style={{ marginBottom: '0.5rem' }} />
-                        <span>No After Photo</span>
-                      </div>
-                    )}
-                  </div>
+            <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: 800, marginBottom: '0.75rem' }}>
+              Issue Photos & Verification (Before & After Comparison)
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+              {/* Before Photo */}
+              <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <strong style={{ color: '#dc2626', fontSize: '0.85rem' }}>🔴 BEFORE (Reported Problem)</strong>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{selectedIssue.date}</span>
                 </div>
-              </div>
-            ) : (
-              <div>
-                <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: 800, marginBottom: '0.6rem' }}>
-                  Problem Photo
-                </h4>
-                {selectedIssue.photo ? (
-                  <div style={{ width: '100%', maxHeight: '420px', borderRadius: '16px', overflow: 'hidden', border: '1.5px solid #e2e8f0', background: '#0f172a' }}>
+                {selectedIssue.beforePhoto || selectedIssue.photo ? (
+                  <div style={{ height: '240px', borderRadius: '10px', overflow: 'hidden', background: '#0f172a' }}>
                     <img 
-                      src={selectedIssue.photo} 
-                      alt={selectedIssue.category} 
-                      style={{ width: '100%', height: '100%', maxHeight: '420px', objectFit: 'contain', display: 'block', margin: '0 auto' }} 
+                      src={selectedIssue.beforePhoto || selectedIssue.photo} 
+                      alt={`Before problem ${selectedIssue.id}`} 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
                     />
                   </div>
                 ) : (
-                  <div style={{ background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: '14px', padding: '2.5rem 1.5rem', textAlign: 'center', color: '#64748b' }}>
-                    <ImageOff size={38} style={{ color: '#94a3b8', margin: '0 auto 0.6rem', display: 'block' }} />
-                    <strong style={{ color: '#475569', fontSize: '0.95rem', display: 'block' }}>No photo available</strong>
-                    <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>The reporter did not attach an image for this issue report.</span>
+                  <div style={{ height: '240px', borderRadius: '10px', background: '#ffffff', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem', gap: '0.35rem', textAlign: 'center', padding: '1rem' }}>
+                    <ImageOff size={32} />
+                    <span>No before photo uploaded yet</span>
                   </div>
                 )}
               </div>
-            )}
+
+              {/* After Photo */}
+              <div style={{ background: selectedIssue.afterPhoto ? '#f0fdf4' : '#f8fafc', border: selectedIssue.afterPhoto ? '2px solid #86efac' : '1.5px dashed #cbd5e1', borderRadius: '14px', padding: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <strong style={{ color: selectedIssue.afterPhoto ? '#16a34a' : '#64748b', fontSize: '0.85rem' }}>
+                    {selectedIssue.afterPhoto ? '🟢 AFTER SOLUTION ✓ (Verified Result)' : '⚪ AFTER-SOLUTION PHOTO'}
+                  </strong>
+                  {selectedIssue.resolvedDate && (
+                    <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 700 }}>{selectedIssue.resolvedDate}</span>
+                  )}
+                </div>
+                {selectedIssue.afterPhoto ? (
+                  <div style={{ height: '240px', borderRadius: '10px', overflow: 'hidden', background: '#0f172a', border: '1px solid #86efac' }}>
+                    <img 
+                      src={selectedIssue.afterPhoto} 
+                      alt={`After solution ${selectedIssue.id}`} 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                    />
+                  </div>
+                ) : isNGOUser && selectedIssue.adopted && selectedIssue.status !== 'Resolved' && !selectedIssue.resolved ? (
+                  <div 
+                    onClick={(e) => handleOpenResolveModal(selectedIssue, e)}
+                    style={{ height: '240px', borderRadius: '10px', background: '#ffffff', border: '1.5px dashed #059669', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#059669', cursor: 'pointer', padding: '1rem', textAlign: 'center', fontWeight: 700 }}
+                  >
+                    <Camera size={36} style={{ marginBottom: '0.5rem' }} />
+                    <span style={{ fontSize: '0.95rem' }}>+ Upload After-Solution Photo</span>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 400, marginTop: '0.25rem' }}>Upload photo of resolved work</span>
+                  </div>
+                ) : (
+                  <div style={{ height: '240px', borderRadius: '10px', background: '#ffffff', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem', gap: '0.35rem', textAlign: 'center', padding: '1rem' }}>
+                    <Clock size={32} style={{ color: '#94a3b8' }} />
+                    <span>No solution photo uploaded yet</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* FULL DESCRIPTION */}
@@ -621,18 +618,28 @@ export default function CommunityIssuesPage({ user }) {
 
           {/* BACK BUTTON AT BOTTOM */}
           <div style={{ marginTop: '2rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-            <button 
-              className="btn btn-secondary"
-              onClick={() => {
-                setSelectedIssue(null);
-                setAdoptionSuccessMessage('');
-                setAdoptionErrorMessage('');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
-            >
-              <ArrowLeft size={16} /> &larr; Back to Community Issues
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => {
+                  setSelectedIssue(null);
+                  setAdoptionSuccessMessage('');
+                  setAdoptionErrorMessage('');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+              >
+                <ArrowLeft size={16} /> &larr; Back to Community Issues
+              </button>
+
+              <button 
+                className="btn btn-outline"
+                onClick={() => onNavigate && onNavigate('map', selectedIssue.id)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: '#2563eb', borderColor: '#bfdbfe', background: '#eff6ff' }}
+              >
+                <Compass size={16} /> View in Map
+              </button>
+            </div>
 
             {isNGOUser && !selectedIssue.adopted && (
               <button 
@@ -876,45 +883,60 @@ export default function CommunityIssuesPage({ user }) {
                 </code>
               </div>
 
-              {/* Photo Preview / Comparison if attached */}
-              {issue.status === 'Resolved' || issue.resolved ? (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div className="photo-compare-grid">
-                    <div>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#dc2626', display: 'block', marginBottom: '0.15rem' }}>BEFORE</span>
-                      {issue.beforePhoto || issue.photo ? (
-                        <div style={{ borderRadius: '8px', overflow: 'hidden', height: '95px', background: '#0f172a' }}>
-                          <img src={issue.beforePhoto || issue.photo} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </div>
-                      ) : (
-                        <div style={{ borderRadius: '8px', background: '#f8fafc', border: '1px dashed #cbd5e1', height: '95px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#94a3b8' }}>
-                          No Before
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#16a34a', display: 'block', marginBottom: '0.15rem' }}>AFTER SOLUTION ✓</span>
-                      {issue.afterPhoto ? (
-                        <div style={{ borderRadius: '8px', overflow: 'hidden', height: '95px', background: '#0f172a', border: '2px solid #86efac' }}>
-                          <img src={issue.afterPhoto} alt="After" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </div>
-                      ) : (
-                        <div style={{ borderRadius: '8px', background: '#f8fafc', border: '1px dashed #cbd5e1', height: '95px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#94a3b8' }}>
-                          No Photo
-                        </div>
-                      )}
-                    </div>
+              {/* Photo Preview / Comparison mapped strictly to THIS issue */}
+              <div style={{ marginBottom: '0.75rem' }}>
+                <div className="photo-compare-grid">
+                  {/* Before Photo */}
+                  <div style={{ background: '#f8fafc', padding: '0.45rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#dc2626', display: 'block', marginBottom: '0.2rem' }}>
+                      🔴 BEFORE PHOTO
+                    </span>
+                    {issue.beforePhoto || issue.photo ? (
+                      <div style={{ borderRadius: '8px', overflow: 'hidden', height: '95px', background: '#0f172a' }}>
+                        <img 
+                          src={issue.beforePhoto || issue.photo} 
+                          alt={`Before ${issue.category} ${issue.id}`} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ borderRadius: '8px', background: '#ffffff', border: '1px dashed #cbd5e1', height: '95px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#94a3b8', gap: '0.15rem', padding: '0.2rem', textAlign: 'center' }}>
+                        <ImageOff size={16} />
+                        <span>No before photo uploaded yet</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* After Photo */}
+                  <div style={{ background: issue.afterPhoto ? '#f0fdf4' : '#f8fafc', padding: '0.45rem', borderRadius: '10px', border: issue.afterPhoto ? '1.5px solid #86efac' : '1px dashed #cbd5e1' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: issue.afterPhoto ? '#16a34a' : '#64748b', display: 'block', marginBottom: '0.2rem' }}>
+                      {issue.afterPhoto ? '🟢 AFTER PHOTO ✓' : '⚪ AFTER PHOTO'}
+                    </span>
+                    {issue.afterPhoto ? (
+                      <div style={{ borderRadius: '8px', overflow: 'hidden', height: '95px', background: '#0f172a', border: '1.5px solid #86efac' }}>
+                        <img 
+                          src={issue.afterPhoto} 
+                          alt={`After solution ${issue.id}`} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      </div>
+                    ) : isNGOUser && issue.adopted && issue.status !== 'Resolved' && !issue.resolved ? (
+                      <div 
+                        onClick={(e) => handleOpenResolveModal(issue, e)}
+                        style={{ borderRadius: '8px', background: '#ffffff', border: '1px dashed #059669', height: '95px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#059669', cursor: 'pointer', padding: '0.2rem', textAlign: 'center', fontWeight: 700 }}
+                      >
+                        <Camera size={18} style={{ marginBottom: '0.15rem' }} />
+                        <span>+ Add After Photo</span>
+                      </div>
+                    ) : (
+                      <div style={{ borderRadius: '8px', background: '#ffffff', border: '1px dashed #cbd5e1', height: '95px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '0.68rem', color: '#94a3b8', gap: '0.15rem', padding: '0.2rem', textAlign: 'center' }}>
+                        <Clock size={16} style={{ color: '#94a3b8' }} />
+                        <span>No solution photo uploaded yet</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ) : issue.photo ? (
-                <div style={{ marginBottom: '0.75rem', borderRadius: '10px', overflow: 'hidden', height: '140px', background: '#0f172a' }}>
-                  <img src={issue.photo} alt={issue.category} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-              ) : (
-                <div style={{ marginBottom: '0.75rem', borderRadius: '10px', background: '#f8fafc', border: '1px dashed #e2e8f0', padding: '0.6rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
-                  <ImageOff size={14} /> No photo available
-                </div>
-              )}
+              </div>
 
               {/* Short Description */}
               <p style={{ color: '#334155', fontSize: '0.88rem', lineHeight: '1.5', margin: '0 0 0.85rem' }}>
@@ -981,9 +1003,20 @@ export default function CommunityIssuesPage({ user }) {
                     setAdoptionErrorMessage('');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  style={{ flex: 1, justifyContent: 'center', fontWeight: 700, fontSize: '0.82rem' }}
+                  style={{ flex: 1, minWidth: '90px', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem' }}
                 >
                   View Details
+                </button>
+
+                <button 
+                  className="btn btn-outline btn-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onNavigate) onNavigate('map', issue.id);
+                  }}
+                  style={{ minWidth: '95px', justifyContent: 'center', fontWeight: 700, fontSize: '0.78rem', color: '#2563eb', borderColor: '#bfdbfe', background: '#eff6ff', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                >
+                  <Compass size={13} /> View in Map
                 </button>
 
                 {/* Show Adopt Issue button ONLY if unadopted AND user is NGO/Volunteer */}
@@ -997,8 +1030,8 @@ export default function CommunityIssuesPage({ user }) {
                   </button>
                 )}
 
-                {/* Show Add After Photo & Mark as Resolved buttons for NGO if adopted but unresolved */}
-                {isNGOUser && issue.adopted && issue.status !== 'Resolved' && !issue.resolved && (
+                {/* Show Add After Photo & Mark as Resolved buttons for NGO if adopted by THIS NGO but unresolved */}
+                {isNGOUser && isIssueAdoptedByNGO(issue, user) && issue.status !== 'Resolved' && !issue.resolved && (
                   <>
                     <button 
                       className="btn btn-primary btn-sm"
@@ -1131,9 +1164,13 @@ export default function CommunityIssuesPage({ user }) {
                 <label className="input-label-bold" style={{ display: 'block', marginBottom: '0.4rem' }}>
                   1. Before Photo (Original Citizen Report)
                 </label>
-                {resolvingIssue.photo ? (
+                {resolvingIssue.beforePhoto || resolvingIssue.photo ? (
                   <div style={{ width: '100%', height: '130px', borderRadius: '10px', overflow: 'hidden', background: '#0f172a', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
-                    <img src={resolvingIssue.photo} alt="Before problem" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img 
+                      src={resolvingIssue.beforePhoto || resolvingIssue.photo} 
+                      alt={`Before problem ${resolvingIssue.id}`} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
                   </div>
                 ) : (
                   <div style={{ padding: '0.75rem', borderRadius: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem', marginBottom: '1rem' }}>

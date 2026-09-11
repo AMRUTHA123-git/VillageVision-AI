@@ -22,12 +22,12 @@ export default function ProfilePage({ user, onLogout, onDeleteAccount }) {
   const identifier = user?.identifier || user?.email || 'user@example.com';
   const role = user?.role || 'Citizen';
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     setIsDeleting(true);
     setDeleteError('');
 
     const targetEmail = identifier;
-    const result = deleteAccount(targetEmail);
+    const result = await deleteAccount(targetEmail);
 
     if (!result.success) {
       setIsDeleting(false);

@@ -1,8 +1,39 @@
 // ============================================================
 // VillageVision AI - Shared Issue Data & Persistence Engine
+// Connected to Python Flask Backend & SQLite Database
+// SINGLE SOURCE OF TRUTH: SQLite Database via Flask REST API
 // ============================================================
 
-const STORAGE_KEY = 'villagevision_issues_v2';
+import {
+  apiGetIssues,
+  apiCreateIssue,
+  apiAdoptIssue,
+  apiAddAfterPhoto,
+  apiResolveIssue,
+  apiGetMyReports,
+  apiReverseGeocode
+} from './api.js';
+
+// Purge any legacy bloated localStorage keys to prevent QuotaExceededError
+if (typeof window !== 'undefined') {
+  [
+    'villagevision_issues',
+    'villagevision_issues_v2',
+    'villagevision_issues_v3',
+    'villagevision_issues_v4',
+    'villagevision_issues_v5',
+    'villagevision_issues_v6'
+  ].forEach(k => {
+    try {
+      localStorage.removeItem(k);
+    } catch (e) {
+      // Safe ignore
+    }
+  });
+}
+
+// In-Memory Issues State (Single Source of Truth in memory synced from SQLite)
+let memoryIssues = [];
 
 // ============================================================
 // ISSUE CATEGORIES
@@ -54,194 +85,145 @@ export const LOCATION_HIERARCHY = {
   }
 };
 
-// ============================================================
-// INITIAL DEMO ISSUES (VISAKHAPATNAM LOCALITIES WITH PINCODES & TIME)
-// ============================================================
-export const INITIAL_DEMO_ISSUES = [
-  {
-    id: 'VV-1042',
-    category: 'Road Damage',
-    description: 'Severe potholes reported near the main road causing vehicular hazard and traffic delays.',
-    photo: null,
-    state: 'Andhra Pradesh',
-    district: 'Visakhapatnam',
-    village: 'Bheemunipatnam',
-    area: 'Main Road',
-    pincode: '531163',
-    latitude: 17.8912,
-    longitude: 83.4542,
-    priority: 'High',
-    status: 'Open',
-    reportedBy: 'Ramesh Sharma',
-    reportedByRole: 'Citizen',
-    date: '2026-08-18',
-    time: '10:30 AM'
-  },
-  {
-    id: 'VV-1043',
-    category: 'Water Leakage',
-    description: 'Main clean water pipeline leaking onto public walkway near Sector 3 center.',
-    photo: null,
-    state: 'Andhra Pradesh',
-    district: 'Visakhapatnam',
-    village: 'Anandapuram',
-    area: 'Village Center',
-    pincode: '530052',
-    latitude: 17.9150,
-    longitude: 83.3980,
-    priority: 'High',
-    status: 'In Progress',
-    reportedBy: 'Seva Foundation',
-    reportedByRole: 'NGO / Volunteer',
-    date: '2026-08-19',
-    time: '02:15 PM'
-  },
-  {
-    id: 'VV-1039',
-    category: 'Broken Streetlight',
-    description: 'Dark street corner due to non-functioning LED streetlight fixture near evening bus stop.',
-    photo: null,
-    state: 'Andhra Pradesh',
-    district: 'Visakhapatnam',
-    village: 'Pendurthi',
-    area: 'Market Road',
-    pincode: '531173',
-    latitude: 17.8315,
-    longitude: 83.2005,
-    priority: 'Medium',
-    status: 'Open',
-    reportedBy: 'Suresh Rao',
-    reportedByRole: 'Volunteer',
-    date: '2026-08-17',
-    time: '07:45 PM'
-  },
-  {
-    id: 'VV-1028',
-    category: 'Garbage Overflow',
-    description: 'Unattended municipal waste bin overflowing and attracting pests in commercial zone.',
-    photo: null,
-    state: 'Andhra Pradesh',
-    district: 'Visakhapatnam',
-    village: 'Gajuwaka',
-    area: 'Main Road',
-    pincode: '530026',
-    latitude: 17.6904,
-    longitude: 83.2185,
-    priority: 'Medium',
-    status: 'Verified',
-    reportedBy: 'Green Earth Foundation',
-    reportedByRole: 'NGO / Volunteer',
-    date: '2026-08-15',
-    time: '11:20 AM'
-  },
-  {
-    id: 'VV-1015',
-    category: 'Drainage Problem',
-    description: 'Clogged storm drain backing up water onto pedestrian pathway during heavy rains.',
-    photo: null,
-    state: 'Andhra Pradesh',
-    district: 'Visakhapatnam',
-    village: 'Sabbavaram',
-    area: 'Temple Road',
-    pincode: '531035',
-    latitude: 17.8010,
-    longitude: 83.1320,
-    priority: 'High',
-    status: 'Assigned',
-    reportedBy: 'Kiran Sarma',
-    reportedByRole: 'Citizen',
-    date: '2026-08-12',
-    time: '04:10 PM'
-  },
-  {
-    id: 'VV-1012',
-    category: 'Healthcare Facility',
-    description: 'Village healthcare center requires medicine restocking and first-aid support.',
-    photo: null,
-    state: 'Andhra Pradesh',
-    district: 'Visakhapatnam',
-    village: 'Padmanabham',
-    area: 'Village Square',
-    pincode: '531219',
-    latitude: 17.9860,
-    longitude: 83.3340,
-    priority: 'High',
-    status: 'Open',
-    reportedBy: 'Ananya Rao',
-    reportedByRole: 'Citizen',
-    date: '2026-08-10',
-    time: '09:05 AM'
-  },
-  {
-    id: 'VV-1008',
-    category: 'Transportation',
-    description: 'Feeder bus route frequency needed during morning and evening rush hours.',
-    photo: null,
-    state: 'Andhra Pradesh',
-    district: 'Visakhapatnam',
-    village: 'Visakhapatnam Rural',
-    area: 'Highway Junction',
-    pincode: '530045',
-    latitude: 17.7500,
-    longitude: 83.2800,
-    priority: 'Low',
-    status: 'Open',
-    reportedBy: 'Ramesh Sharma',
-    reportedByRole: 'Citizen',
-    date: '2026-08-08',
-    time: '06:30 PM'
-  }
-];
+export const INITIAL_DEMO_ISSUES = [];
 
 // ============================================================
-// GET STORED ISSUES
+// NOTIFY REAL-TIME SUBSCRIBERS
 // ============================================================
-export function getStoredIssues() {
-  const defaultTimes = ['10:30 AM', '02:15 PM', '07:45 PM', '11:20 AM', '04:10 PM', '09:05 AM', '06:30 PM', '01:45 PM'];
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) {
-      const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        // Ensure every issue has date and distinct time
-        const withTimes = parsed.map((item, idx) => {
-          if (!item.time) {
-            return {
-              ...item,
-              time: defaultTimes[idx % defaultTimes.length]
-            };
-          }
-          return item;
-        });
-        return withTimes;
-      }
+export const ISSUES_UPDATED_EVENT = 'villagevision_issues_updated';
+
+export function notifyIssueUpdates(issues) {
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent(ISSUES_UPDATED_EVENT, { detail: { issues: issues || memoryIssues } }));
+    } catch (e) {
+      console.warn('Failed to dispatch issues update event:', e);
     }
-  } catch (error) {
-    console.error('Failed to parse stored issues:', error);
   }
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DEMO_ISSUES));
-  return INITIAL_DEMO_ISSUES;
 }
 
 // ============================================================
-// SAVE NEW ISSUE
+// FETCH ISSUES FROM FLASK BACKEND & SQLITE (SOURCE OF TRUTH)
 // ============================================================
-export function saveIssue(newIssueData = {}) {
-  const existing = getStoredIssues();
+export async function fetchIssuesFromBackend() {
+  try {
+    const res = await apiGetIssues();
+    if (res.success && Array.isArray(res.issues)) {
+      memoryIssues = res.issues;
+      notifyIssueUpdates(memoryIssues);
+      return memoryIssues;
+    }
+  } catch (err) {
+    console.warn('[VillageVision] Failed to fetch issues from Flask backend:', err);
+  }
+  return memoryIssues;
+}
 
-  // Generate safe unique issue ID
-  const maxId = existing.reduce((max, item) => {
-    const number = parseInt(String(item.id || '').replace('VV-', ''), 10);
-    return Number.isNaN(number) ? max : Math.max(max, number);
-  }, 1044);
+// Background initial sync
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    fetchIssuesFromBackend();
+  }, 50);
+}
 
-  const now = new Date();
-  const dateStr = now.toISOString().split('T')[0];
-  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+// ============================================================
+// GET STORED ISSUES (SYNC ACCESS FOR REACT RENDERING)
+// ============================================================
+export function getStoredIssues() {
+  return memoryIssues;
+}
 
-  const newRecord = {
-    id: `VV-${maxId + 1}`,
+// ============================================================
+// MY REPORTS HELPERS (BACKEND + IN-MEMORY MATCHING)
+// ============================================================
+export async function fetchMyReportsFromBackend(user = {}) {
+  try {
+    const res = await apiGetMyReports(user);
+    if (res.success && Array.isArray(res.issues)) {
+      return res.issues;
+    }
+  } catch (err) {
+    console.warn('[VillageVision] Failed to fetch personal reports from backend:', err);
+  }
+  return getMyReports(user);
+}
+
+export function getMyReports(user = {}, issuesList = null) {
+  const all = Array.isArray(issuesList) ? issuesList : memoryIssues;
+  if (!user || (!user.identifier && !user.email && !user.id && !user.fullName && !user.name)) {
+    return [];
+  }
+
+  const ident = String(user.identifier || user.email || '').toLowerCase().trim();
+  const email = String(user.email || user.identifier || '').toLowerCase().trim();
+  const uid = String(user.id || '').toLowerCase().trim();
+  const name = String(user.fullName || user.name || '').toLowerCase().trim();
+
+  return all.filter(iss => {
+    const issIdent = String(iss.reportedByIdentifier || iss.reportedByEmail || '').toLowerCase().trim();
+    const issEmail = String(iss.reportedByEmail || iss.reportedByIdentifier || '').toLowerCase().trim();
+    const issUid = String(iss.reportedByUserId || '').toLowerCase().trim();
+    const issName = String(iss.reportedBy || '').toLowerCase().trim();
+
+    if (ident && (issIdent === ident || issEmail === ident)) return true;
+    if (email && (issEmail === email || issIdent === email)) return true;
+    if (uid && issUid && (issUid === uid || issUid === `usr-${uid.replace('usr-', '')}`)) return true;
+    if (name && issName && issName === name) {
+      if (!issIdent && !ident) return true;
+      if (issIdent === ident || issEmail === email) return true;
+    }
+
+    return false;
+  });
+}
+
+export function isIssueAdoptedByNGO(issue, user = {}) {
+  if (!issue || !issue.adopted || !user) return false;
+
+  const uid = String(user.id || '').toLowerCase().trim();
+  const ident = String(user.identifier || user.email || '').toLowerCase().trim();
+  const email = String(user.email || user.identifier || '').toLowerCase().trim();
+  const name = String(user.fullName || user.name || '').toLowerCase().trim();
+
+  const issUid = String(issue.adoptedByUserId || '').toLowerCase().trim();
+  const issName = String(issue.adoptedBy || issue.adoptedByName || issue.organization || '').toLowerCase().trim();
+
+  // 1. Strict user ID match (e.g. USR-10 === USR-10 or 10 === 10)
+  if (uid && issUid && (issUid === uid || issUid === `usr-${uid.replace('usr-', '')}` || uid === `usr-${issUid.replace('usr-', '')}`)) {
+    return true;
+  }
+
+  // 2. Strict identifier / email match
+  if (ident && issUid && (issUid === ident || issUid === email)) {
+    return true;
+  }
+  if (email && issUid && (issUid === email || issUid === ident)) {
+    return true;
+  }
+
+  // 3. Match on name only when no conflicting user ID is recorded
+  if (name && issName && issName === name) {
+    if (!issUid || (uid && (issUid === uid || issUid === `usr-${uid.replace('usr-', '')}`)) || (ident && issUid === ident)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function getMyAdoptedIssues(user = {}, issuesList = null) {
+  const all = Array.isArray(issuesList) ? issuesList : memoryIssues;
+  if (!user || (!user.id && !user.identifier && !user.email && !user.fullName && !user.name)) {
+    return [];
+  }
+  return all.filter(issue => isIssueAdoptedByNGO(issue, user));
+}
+
+// ============================================================
+// SAVE NEW ISSUE (Saves to Flask & SQLite)
+// ============================================================
+export async function saveIssue(newIssueData = {}) {
+  const payload = {
     category: newIssueData.category || 'Road Damage',
     description: newIssueData.description || '',
     photo: newIssueData.photo || null,
@@ -253,37 +235,43 @@ export function saveIssue(newIssueData = {}) {
     latitude: Number.isFinite(parseFloat(newIssueData.latitude)) ? parseFloat(newIssueData.latitude) : 17.8912,
     longitude: Number.isFinite(parseFloat(newIssueData.longitude)) ? parseFloat(newIssueData.longitude) : 83.4542,
     priority: newIssueData.priority || 'Medium',
-    status: 'Open',
-    reportedBy: newIssueData.reportedBy || 'Authenticated User',
-    reportedByRole: newIssueData.reportedByRole || 'Citizen',
-    date: newIssueData.date || dateStr,
-    time: newIssueData.time || timeStr
+    reportedBy: newIssueData.reportedBy || 'Authenticated Citizen',
+    reportedByUserId: newIssueData.reportedByUserId || '',
+    reportedByIdentifier: newIssueData.reportedByIdentifier || newIssueData.reportedByEmail || '',
+    reportedByEmail: newIssueData.reportedByEmail || newIssueData.reportedByIdentifier || '',
+    reportedByRole: newIssueData.reportedByRole || 'Citizen'
   };
 
-  const updated = [newRecord, ...existing];
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  } catch (e) {
-    console.error('Failed to save issue to localStorage:', e);
+  // Call Flask API (Single Source of Truth)
+  const apiRes = await apiCreateIssue(payload);
+
+  if (apiRes.success && apiRes.issue) {
+    const newRecord = apiRes.issue;
+    memoryIssues = [newRecord, ...memoryIssues.filter(i => i.id !== newRecord.id)];
+    notifyIssueUpdates(memoryIssues);
+    return newRecord;
   }
 
-  notifyIssueUpdates(updated);
-  return newRecord;
-}
+  // Fallback if offline
+  const maxId = memoryIssues.reduce((max, item) => {
+    const number = parseInt(String(item.id || '').replace('VV-', ''), 10);
+    return Number.isNaN(number) ? max : Math.max(max, number);
+  }, 1000);
 
-// ============================================================
-// NOTIFY REAL-TIME SUBSCRIBERS
-// ============================================================
-export const ISSUES_UPDATED_EVENT = 'villagevision_issues_updated';
+  const now = new Date();
+  const fallbackRecord = {
+    ...payload,
+    id: `VV-${maxId + 1}`,
+    status: 'Open',
+    date: now.toISOString().split('T')[0],
+    time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+    adopted: false,
+    resolved: false
+  };
 
-export function notifyIssueUpdates(issues) {
-  if (typeof window !== 'undefined') {
-    try {
-      window.dispatchEvent(new CustomEvent(ISSUES_UPDATED_EVENT, { detail: { issues } }));
-    } catch (e) {
-      console.error('Failed to dispatch issues update event:', e);
-    }
-  }
+  memoryIssues = [fallbackRecord, ...memoryIssues];
+  notifyIssueUpdates(memoryIssues);
+  return fallbackRecord;
 }
 
 // ============================================================
@@ -294,109 +282,55 @@ export function subscribeToIssueUpdates(callback) {
     return () => {};
   }
 
+  // Trigger background sync from backend
+  fetchIssuesFromBackend().then(latest => {
+    if (latest && Array.isArray(latest)) callback(latest);
+  }).catch(() => {});
+
   const handleCustomEvent = (e) => {
     if (e?.detail?.issues) {
       callback(e.detail.issues);
     } else {
-      callback(getStoredIssues());
-    }
-  };
-
-  const handleStorageEvent = (e) => {
-    if (e.key === STORAGE_KEY) {
-      callback(getStoredIssues());
+      callback(memoryIssues);
     }
   };
 
   window.addEventListener(ISSUES_UPDATED_EVENT, handleCustomEvent);
-  window.addEventListener('storage', handleStorageEvent);
 
   return () => {
     window.removeEventListener(ISSUES_UPDATED_EVENT, handleCustomEvent);
-    window.removeEventListener('storage', handleStorageEvent);
   };
 }
 
 // ============================================================
-// ATOMIC ISSUE ADOPTION (ANTI-DUPLICATE LOCK)
+// ATOMIC ISSUE ADOPTION (ANTI-DUPLICATE LOCK via Flask & SQLite)
 // ============================================================
-export function adoptIssue(issueId, adopterUser = {}) {
-  const issues = getStoredIssues();
-  const target = issues.find(item => item.id === issueId);
+export async function adoptIssue(issueId, adopterUser = {}) {
+  const apiRes = await apiAdoptIssue(issueId, adopterUser);
 
-  if (!target) {
+  if (!apiRes.success) {
     return {
       success: false,
-      error: 'Issue not found.'
+      error: apiRes.error || 'Failed to adopt issue.',
+      issue: apiRes.data?.issue
     };
   }
 
-  // ATOMIC CHECK: If already adopted, reject second adoption
-  if (target.adopted === true) {
-    return {
-      success: false,
-      error: `This issue is already adopted by ${target.adoptedBy || 'another organization'}.`,
-      issue: target
-    };
-  }
-
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-  const adoptedAtStr = `${dateStr}, ${timeStr}`;
-
-  const adopterName = (adopterUser?.fullName || adopterUser?.name || 'NGO / Volunteer Organization').trim();
-  const adopterRole = adopterUser?.role || 'NGO / Volunteer';
-  const adopterId = adopterUser?.id || adopterUser?.email || '';
-
-  let updatedIssue = null;
-  const updated = issues.map(item => {
-    if (item.id === issueId) {
-      updatedIssue = {
-        ...item,
-        adopted: true,
-        adoptedBy: adopterName,
-        adoptedByUserId: adopterId,
-        adoptedByRole: adopterRole,
-        adoptedDate: dateStr,
-        adoptedTime: timeStr,
-        adoptedAt: adoptedAtStr,
-        status: 'Adopted'
-      };
-      return updatedIssue;
-    }
-    return item;
-  });
-
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  } catch (e) {
-    console.error('Failed to save adopted issue to localStorage:', e);
-  }
-
-  notifyIssueUpdates(updated);
+  const updatedIssue = apiRes.issue;
+  memoryIssues = memoryIssues.map(item => item.id === issueId ? updatedIssue : item);
+  notifyIssueUpdates(memoryIssues);
 
   return {
     success: true,
     issue: updatedIssue,
-    issues: updated
+    issues: memoryIssues
   };
 }
 
 // ============================================================
 // ADD / UPDATE AFTER-SOLUTION PHOTO TO ADOPTED ISSUE
 // ============================================================
-export function addAfterPhoto(issueId, afterPhoto, { solutionDescription = '', updatedByUser = {} } = {}) {
-  const issues = getStoredIssues();
-  const target = issues.find(item => item.id === issueId);
-
-  if (!target) {
-    return {
-      success: false,
-      error: 'Issue not found.'
-    };
-  }
-
+export async function addAfterPhoto(issueId, afterPhoto, { solutionDescription = '', updatedByUser = {} } = {}) {
   if (!afterPhoto || typeof afterPhoto !== 'string' || !afterPhoto.trim()) {
     return {
       success: false,
@@ -404,112 +338,54 @@ export function addAfterPhoto(issueId, afterPhoto, { solutionDescription = '', u
     };
   }
 
-  const uploaderName = (updatedByUser?.fullName || updatedByUser?.name || target.adoptedBy || 'NGO / Volunteer').trim();
-  const uploaderRole = updatedByUser?.role || target.adoptedByRole || 'NGO / Volunteer';
-
-  let updatedIssue = null;
-  const updated = issues.map(item => {
-    if (item.id === issueId) {
-      updatedIssue = {
-        ...item,
-        adopted: true,
-        adoptedBy: item.adoptedBy || uploaderName,
-        adoptedByRole: item.adoptedByRole || uploaderRole,
-        beforePhoto: item.beforePhoto || item.photo || null,
-        afterPhoto: afterPhoto.trim(),
-        solutionDescription: (solutionDescription || item.solutionDescription || '').trim()
-      };
-      return updatedIssue;
-    }
-    return item;
+  const apiRes = await apiAddAfterPhoto(issueId, afterPhoto, {
+    solutionDescription,
+    updatedByUser
   });
 
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  } catch (e) {
-    console.error('Failed to save after-photo to localStorage:', e);
+  if (!apiRes.success) {
+    return {
+      success: false,
+      error: apiRes.error || 'Failed to save after-solution photo.'
+    };
   }
 
-  notifyIssueUpdates(updated);
+  const updatedIssue = apiRes.issue;
+  memoryIssues = memoryIssues.map(item => item.id === issueId ? updatedIssue : item);
+  notifyIssueUpdates(memoryIssues);
 
   return {
     success: true,
     issue: updatedIssue,
-    issues: updated
+    issues: memoryIssues
   };
 }
 
 // ============================================================
 // RESOLVE ISSUE WITH MANDATORY AFTER-SOLUTION PHOTO
 // ============================================================
-export function resolveIssue(issueId, { solutionPhoto, solutionDescription = '', resolvedByUser = {} } = {}) {
-  const issues = getStoredIssues();
-  const target = issues.find(item => item.id === issueId);
-
-  if (!target) {
-    return {
-      success: false,
-      error: 'Issue not found.'
-    };
-  }
-
-  const effectivePhoto = (solutionPhoto && typeof solutionPhoto === 'string' && solutionPhoto.trim()) 
-    ? solutionPhoto.trim() 
-    : (target.afterPhoto || '').trim();
-
-  // Mandatory after-solution photo check
-  if (!effectivePhoto) {
-    return {
-      success: false,
-      error: 'An after-solution photo is required before marking this issue as Resolved.'
-    };
-  }
-
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-  const solverName = (resolvedByUser?.fullName || resolvedByUser?.name || target.adoptedBy || 'NGO / Volunteer Organization').trim();
-  const solverRole = resolvedByUser?.role || target.adoptedByRole || 'NGO / Volunteer';
-  const solverId = resolvedByUser?.id || resolvedByUser?.email || target.adoptedByUserId || '';
-
-  let updatedIssue = null;
-  const updated = issues.map(item => {
-    if (item.id === issueId) {
-      updatedIssue = {
-        ...item,
-        adopted: true,
-        adoptedBy: item.adoptedBy || solverName,
-        adoptedByRole: item.adoptedByRole || solverRole,
-        status: 'Resolved',
-        resolved: true,
-        resolvedBy: solverName,
-        resolvedByUserId: solverId,
-        resolvedByRole: solverRole,
-        resolvedDate: dateStr,
-        resolvedTime: timeStr,
-        resolvedAt: `${dateStr}, ${timeStr}`,
-        beforePhoto: item.beforePhoto || item.photo || null,
-        afterPhoto: effectivePhoto,
-        solutionDescription: (solutionDescription || item.solutionDescription || '').trim() || 'Community problem successfully addressed and verified by NGO / Volunteer intervention.'
-      };
-      return updatedIssue;
-    }
-    return item;
+export async function resolveIssue(issueId, { solutionPhoto, solutionDescription = '', resolvedByUser = {} } = {}) {
+  const apiRes = await apiResolveIssue(issueId, {
+    solutionPhoto,
+    solutionDescription,
+    resolvedByUser
   });
 
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  } catch (e) {
-    console.error('Failed to save resolved issue to localStorage:', e);
+  if (!apiRes.success) {
+    return {
+      success: false,
+      error: apiRes.error || 'Failed to mark issue as resolved.'
+    };
   }
 
-  notifyIssueUpdates(updated);
+  const updatedIssue = apiRes.issue;
+  memoryIssues = memoryIssues.map(item => item.id === issueId ? updatedIssue : item);
+  notifyIssueUpdates(memoryIssues);
 
   return {
     success: true,
     issue: updatedIssue,
-    issues: updated
+    issues: memoryIssues
   };
 }
 
@@ -517,8 +393,7 @@ export function resolveIssue(issueId, { solutionPhoto, solutionDescription = '',
 // UPDATE ISSUE STATUS
 // ============================================================
 export function updateIssueStatus(id, newStatus, metadata = {}) {
-  const issues = getStoredIssues();
-  const updated = issues.map(item => {
+  memoryIssues = memoryIssues.map(item => {
     if (item.id === id) {
       const updatedItem = {
         ...item,
@@ -539,14 +414,8 @@ export function updateIssueStatus(id, newStatus, metadata = {}) {
     return item;
   });
 
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  } catch (e) {
-    console.error('Failed to update issue status in localStorage:', e);
-  }
-
-  notifyIssueUpdates(updated);
-  return updated;
+  notifyIssueUpdates(memoryIssues);
+  return memoryIssues;
 }
 
 // ============================================================
@@ -562,19 +431,16 @@ export function filterIssues(issues, filters = {}) {
   } = filters;
 
   return issues.filter(issue => {
-    // 1. Village / Area filter
     if (village && village !== 'All Villages / Areas' && village !== 'All' && issue.village !== village) {
       return false;
     }
 
-    // 2. Exact Pincode filter if valid 6-digit entered
     if (pincode && pincode.trim().length === 6) {
       if ((issue.pincode || '').trim() !== pincode.trim()) {
         return false;
       }
     }
 
-    // 3. Search query (matches Category, Description, Village, Area, ID, Pincode)
     if (search && search.trim()) {
       const q = search.toLowerCase().trim();
       const match =

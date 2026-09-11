@@ -28,14 +28,27 @@ import {
   Construction,
   Sparkles
 } from 'lucide-react';
-import { getStoredIssues, subscribeToIssueUpdates } from '../../utils/issueData';
+import { getStoredIssues, fetchIssuesFromBackend, subscribeToIssueUpdates, getMyReports } from '../../utils/issueData';
 
 export default function CitizenDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('home');
   const [issues, setIssues] = useState([]);
+  const [selectedMapIssueId, setSelectedMapIssueId] = useState(null);
+
+  const handleNavigate = (tab, issueId = null) => {
+    setSelectedMapIssueId(issueId);
+    setActiveTab(tab);
+  };
 
   useEffect(() => {
     setIssues(getStoredIssues());
+
+    // Fetch fresh from backend SQLite
+    fetchIssuesFromBackend().then(fresh => {
+      if (Array.isArray(fresh)) {
+        setIssues(fresh);
+      }
+    }).catch(() => {});
 
     const unsubscribe = subscribeToIssueUpdates((latest) => {
       setIssues(latest);
@@ -59,24 +72,28 @@ export default function CitizenDashboard({ user, onLogout }) {
     { id: 'profile', label: 'Profile', icon: <User size={18} /> },
   ];
 
-  // Calculated stats
-  const totalCount = issues.length;
-  const openCount = issues.filter(r => (r.status === 'Open' || r.status === 'Pending Verification') && !r.adopted && !r.resolved).length;
-  const inProgressCount = issues.filter(r => r.status === 'In Progress' || r.status === 'Assigned' || (r.adopted && r.status !== 'Resolved' && !r.resolved)).length;
-  const resolvedCount = issues.filter(r => r.status === 'Resolved' || r.resolved === true).length;
+  // Calculated stats (computed ONLY for the currently logged-in citizen)
+  const myReports = getMyReports(user, issues);
+  const totalCount = myReports.length;
+  const openCount = myReports.filter(r => (r.status === 'Open' || r.status === 'Pending Verification' || (!r.status && !r.adopted)) && !r.adopted && !r.resolved).length;
+  const inProgressCount = myReports.filter(r => r.status === 'In Progress' || r.status === 'Assigned' || (r.adopted && r.status !== 'Resolved' && !r.resolved)).length;
+  const resolvedCount = myReports.filter(r => r.status === 'Resolved' || r.resolved === true).length;
 
   const renderContent = () => {
     switch (activeTab) {
       case 'report-issue':
-        return <ReportIssuePage user={user} onNavigate={setActiveTab} />;
+        return <ReportIssuePage user={user} onNavigate={handleNavigate} />;
       case 'my-reports':
-        return <MyReportsPage user={user} onNavigate={setActiveTab} />;
+        return <MyReportsPage user={user} onNavigate={handleNavigate} />;
       case 'community-issues':
-        return <CommunityIssuesPage user={user} />;
+        return <CommunityIssuesPage user={user} onNavigate={handleNavigate} />;
       case 'map':
-        return <CommunityMapPage />;
+        return <CommunityMapPage highlightIssueId={selectedMapIssueId} onClearHighlight={() => setSelectedMapIssueId(null)} />;
       case 'insights':
         return <AIInsightsPage />;
+      case 'notifications':
+        return <NotificationsPage user={user} onNavigate={handleNavigate} />;
+
       case 'opportunities':
         return (
           <div className="dash-card">
@@ -163,8 +180,6 @@ export default function CitizenDashboard({ user, onLogout }) {
             </div>
           </div>
         );
-      case 'notifications':
-        return <NotificationsPage />;
       case 'profile':
         return <ProfilePage user={user} onLogout={onLogout} />;
       case 'home':

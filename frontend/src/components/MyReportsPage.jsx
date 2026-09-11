@@ -1,38 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Search, MapPin, Clock, CheckCircle2, AlertCircle, PlusCircle, ImageOff } from 'lucide-react';
-import { getStoredIssues, subscribeToIssueUpdates } from '../utils/issueData';
+import { FileText, Search, MapPin, Clock, CheckCircle2, AlertCircle, PlusCircle, ImageOff, Map } from 'lucide-react';
+import { getMyReports, fetchMyReportsFromBackend, subscribeToIssueUpdates } from '../utils/issueData';
 
 export default function MyReportsPage({ user, onNavigate }) {
   const [myIssues, setMyIssues] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filterMyIssues = (all) => {
-    const currentName = (user?.fullName || user?.name || '').toLowerCase().trim();
-    return all.filter(i => {
-      if (!user) return true;
-      const reporter = (i.reportedBy || '').toLowerCase().trim();
-      if (currentName && (reporter === currentName || reporter.includes(currentName))) {
-        return true;
-      }
-      if (user.role === 'Citizen' && (reporter === 'ramesh sharma' || reporter === 'kiran sarma' || reporter === 'ananya rao' || reporter === 'authenticated citizen' || reporter === 'authenticated user')) {
-        return true;
-      }
-      return i.reportedByRole === user.role;
-    });
-  };
-
   useEffect(() => {
-    const all = getStoredIssues();
-    setMyIssues(filterMyIssues(all));
+    // 1. Immediate synchronous load from local state
+    setMyIssues(getMyReports(user));
 
-    const unsubscribe = subscribeToIssueUpdates((latest) => {
-      setMyIssues(filterMyIssues(latest));
+    // 2. Fetch fresh user reports from SQLite backend
+    fetchMyReportsFromBackend(user).then((fresh) => {
+      if (Array.isArray(fresh)) {
+        setMyIssues(fresh);
+      }
+    }).catch(() => {});
+
+    // 3. Listen for any real-time issue updates
+    const unsubscribe = subscribeToIssueUpdates(() => {
+      setMyIssues(getMyReports(user));
     });
 
     return () => {
       unsubscribe();
     };
   }, [user]);
+
 
   const filtered = myIssues.filter(item => {
     if (!searchQuery.trim()) return true;
@@ -114,55 +108,52 @@ export default function MyReportsPage({ user, onNavigate }) {
                   </div>
                 </div>
 
-                {/* RESOLUTION PHOTO COMPARISON (IF RESOLVED) OR STANDARD PREVIEW */}
-                {isResolved ? (
-                  <div style={{ margin: '0.85rem 0' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#166534', marginBottom: '0.35rem' }}>
-                      📸 Resolution Verification Photos:
+                {/* BEFORE & AFTER PHOTO DISPLAY (MAPPED TO THIS SPECIFIC ISSUE) */}
+                <div style={{ margin: '0.85rem 0' }}>
+                  <div className="photo-compare-grid">
+                    {/* Before Photo */}
+                    <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#dc2626', display: 'block', marginBottom: '0.25rem' }}>
+                        🔴 BEFORE PHOTO
+                      </span>
+                      {item.beforePhoto || item.photo ? (
+                        <div style={{ borderRadius: '8px', overflow: 'hidden', height: '120px', background: '#0f172a' }}>
+                          <img 
+                            src={item.beforePhoto || item.photo} 
+                            alt={`Before problem ${item.id}`} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                          />
+                        </div>
+                      ) : (
+                        <div style={{ borderRadius: '8px', background: '#ffffff', border: '1px dashed #cbd5e1', height: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#94a3b8', gap: '0.25rem', padding: '0.25rem', textAlign: 'center' }}>
+                          <ImageOff size={18} />
+                          <span>No before photo uploaded yet</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="photo-compare-grid">
-                      {/* Before Photo */}
-                      <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#dc2626', display: 'block', marginBottom: '0.25rem' }}>
-                          🔴 BEFORE PHOTO
-                        </span>
-                        {item.beforePhoto || item.photo ? (
-                          <div style={{ borderRadius: '8px', overflow: 'hidden', height: '120px', background: '#0f172a' }}>
-                            <img src={item.beforePhoto || item.photo} alt="Before problem" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          </div>
-                        ) : (
-                          <div style={{ borderRadius: '8px', background: '#ffffff', border: '1px dashed #cbd5e1', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#94a3b8' }}>
-                            No Before Photo
-                          </div>
-                        )}
-                      </div>
 
-                      {/* After Photo */}
-                      <div style={{ background: '#f0fdf4', padding: '0.5rem', borderRadius: '10px', border: '1.5px solid #86efac' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a', display: 'block', marginBottom: '0.25rem' }}>
-                          🟢 AFTER-SOLUTION PHOTO ✓
-                        </span>
-                        {item.afterPhoto ? (
-                          <div style={{ borderRadius: '8px', overflow: 'hidden', height: '120px', background: '#0f172a', border: '1.5px solid #86efac' }}>
-                            <img src={item.afterPhoto} alt="After solution" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          </div>
-                        ) : (
-                          <div style={{ borderRadius: '8px', background: '#ffffff', border: '1px dashed #cbd5e1', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#94a3b8' }}>
-                            No Photo
-                          </div>
-                        )}
-                      </div>
+                    {/* After Photo */}
+                    <div style={{ background: item.afterPhoto ? '#f0fdf4' : '#f8fafc', padding: '0.5rem', borderRadius: '10px', border: item.afterPhoto ? '1.5px solid #86efac' : '1px dashed #cbd5e1' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: item.afterPhoto ? '#16a34a' : '#64748b', display: 'block', marginBottom: '0.25rem' }}>
+                        {item.afterPhoto ? '🟢 AFTER-SOLUTION PHOTO ✓' : '⚪ AFTER-SOLUTION PHOTO'}
+                      </span>
+                      {item.afterPhoto ? (
+                        <div style={{ borderRadius: '8px', overflow: 'hidden', height: '120px', background: '#0f172a', border: '1.5px solid #86efac' }}>
+                          <img 
+                            src={item.afterPhoto} 
+                            alt={`After solution ${item.id}`} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                          />
+                        </div>
+                      ) : (
+                        <div style={{ borderRadius: '8px', background: '#ffffff', border: '1px dashed #cbd5e1', height: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#94a3b8', gap: '0.25rem', padding: '0.25rem', textAlign: 'center' }}>
+                          <Clock size={18} style={{ color: '#94a3b8' }} />
+                          <span>No solution photo uploaded yet</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                ) : item.photo ? (
-                  <div style={{ margin: '0.75rem 0', borderRadius: '10px', overflow: 'hidden', height: '140px', background: '#0f172a' }}>
-                    <img src={item.photo} alt={item.category} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                ) : (
-                  <div style={{ margin: '0.75rem 0', borderRadius: '10px', background: '#f8fafc', border: '1px dashed #e2e8f0', padding: '0.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
-                    <ImageOff size={14} /> No photo available
-                  </div>
-                )}
+                </div>
 
                 <div className="issue-meta-row" style={{ marginTop: '0.5rem' }}>
                   <span><MapPin size={14} /> Location: <strong>{item.area}, {item.village}</strong></span>
@@ -213,10 +204,19 @@ export default function MyReportsPage({ user, onNavigate }) {
                   </div>
                 ) : null}
 
-                <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span className={`status-pill ${isResolved ? 'resolved' : item.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                    {isResolved ? 'Resolved' : item.status}
-                  </span>
+                <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span className={`status-pill ${isResolved ? 'resolved' : item.status.toLowerCase().replace(/\s+/g, '-')}`}>
+                      {isResolved ? 'Resolved' : item.status}
+                    </span>
+                    <button 
+                      className="btn btn-outline btn-sm"
+                      onClick={() => onNavigate && onNavigate('map', item.id)}
+                      style={{ fontSize: '0.78rem', padding: '0.3rem 0.65rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#2563eb', borderColor: '#bfdbfe', background: '#eff6ff' }}
+                    >
+                      <Map size={13} /> View in Map
+                    </button>
+                  </div>
                   <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
                     Reported by You ({item.reportedByRole || 'Citizen'})
                   </span>

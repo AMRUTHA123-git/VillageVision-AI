@@ -15,6 +15,7 @@ import {
   Hash
 } from 'lucide-react';
 import { saveIssue, ISSUE_CATEGORIES, VISAKHAPATNAM_VILLAGES } from '../utils/issueData';
+import { apiReverseGeocode } from '../utils/api';
 
 // Leaflet CSS & Component Imports
 import 'leaflet/dist/leaflet.css';
@@ -76,6 +77,7 @@ export default function ReportIssuePage({ user, onNavigate }) {
   const [longitude, setLongitude] = useState(83.4542);
   const [geoDetected, setGeoDetected] = useState(false);
   const [geoError, setGeoError] = useState('');
+  const [isLocating, setIsLocating] = useState(false);
 
   // Submission State
   const [errorMessage, setErrorMessage] = useState('');
@@ -94,34 +96,70 @@ export default function ReportIssuePage({ user, onNavigate }) {
     }
   };
 
-  // Browser Geolocation Trigger
+  // Browser Geolocation Trigger + Reverse Geocoding
   const handleGetLocation = () => {
     setGeoError('');
     setGeoDetected(false);
+    setIsLocating(true);
 
     if (!navigator.geolocation) {
+      setIsLocating(false);
       setGeoError('Geolocation is not supported by your browser. Please select location manually.');
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const lat = parseFloat(pos.coords.latitude.toFixed(4));
         const lng = parseFloat(pos.coords.longitude.toFixed(4));
         setLatitude(lat);
         setLongitude(lng);
-        setGeoDetected(true);
+
+        try {
+          const res = await apiReverseGeocode(lat, lng);
+          if (res.success && res.data) {
+            if (res.data.village) {
+              setSelectedVillage(res.data.village);
+            }
+            if (res.data.area) {
+              setSelectedArea(res.data.area);
+            }
+            if (res.data.pincode && String(res.data.pincode).trim().length === 6) {
+              setPincode(String(res.data.pincode).trim());
+              setGeoDetected(true);
+              setGeoError('');
+            } else {
+              // Real reverse geocode did not detect PIN code -> prompt citizen to enter manually without guessing
+              setGeoDetected(true);
+              setGeoError('PIN code could not be detected. Please enter it manually.');
+            }
+          } else {
+            setGeoDetected(true);
+            setGeoError('PIN code could not be detected. Please enter it manually.');
+          }
+        } catch (err) {
+          console.warn('Reverse geocode error:', err);
+          setGeoDetected(true);
+          setGeoError('PIN code could not be detected. Please enter it manually.');
+        } finally {
+          setIsLocating(false);
+        }
       },
       (err) => {
+        setIsLocating(false);
         console.warn('Geolocation access denied/failed:', err);
-        setGeoError('Unable to access your GPS location. You can click on the map below or enter the area manually.');
+        if (err.code === 1) {
+          setGeoError('Location access was denied. Please allow location permissions in your browser or select your area manually.');
+        } else {
+          setGeoError('Unable to access your GPS location. You can click on the map below or enter the area manually.');
+        }
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
   };
 
   // Form Submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -152,24 +190,32 @@ export default function ReportIssuePage({ user, onNavigate }) {
 
     setIsSubmitting(true);
 
-    const created = saveIssue({
-      category,
-      description: description.trim(),
-      photo: photoPreview,
-      state: selectedState,
-      district: selectedDistrict,
-      village: selectedVillage,
-      area: selectedArea.trim(),
-      pincode: (pincode || '531163').trim(),
-      latitude,
-      longitude,
-      priority,
-      reportedBy: user?.fullName || 'Authenticated Citizen',
-      reportedByRole: user?.role || 'Citizen'
-    });
+    try {
+      const created = await saveIssue({
+        category,
+        description: description.trim(),
+        photo: photoPreview,
+        state: selectedState,
+        district: selectedDistrict,
+        village: selectedVillage,
+        area: selectedArea.trim(),
+        pincode: (pincode || '').trim(),
+        latitude,
+        longitude,
+        priority,
+        reportedBy: user?.fullName || user?.name || 'Authenticated Citizen',
+        reportedByUserId: user?.id || '',
+        reportedByIdentifier: user?.identifier || user?.email || '',
+        reportedByEmail: user?.email || user?.identifier || '',
+        reportedByRole: user?.role || 'Citizen'
+      });
 
-    setIsSubmitting(false);
-    setSubmittedIssue(created);
+      setIsSubmitting(false);
+      setSubmittedIssue(created);
+    } catch (err) {
+      setIsSubmitting(false);
+      setErrorMessage(err.message || 'Failed to submit issue.');
+    }
   };
 
   return (
@@ -425,9 +471,10 @@ export default function ReportIssuePage({ user, onNavigate }) {
                 type="button" 
                 className="btn btn-secondary"
                 onClick={handleGetLocation}
+                disabled={isLocating}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
               >
-                <Navigation size={18} style={{ color: '#059669' }} /> 📍 Use My Current Location
+                <Navigation size={18} style={{ color: '#059669' }} /> {isLocating ? "Detecting GPS & Location..." : "📍 Use My Current Location"}
               </button>
 
               {geoDetected && (

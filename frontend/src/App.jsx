@@ -15,7 +15,14 @@ import NGODashboard from './components/dashboards/NGODashboard';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('landing');
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('villagevision_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [successNotice, setSuccessNotice] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [loginPrefill, setLoginPrefill] = useState({ email: '', role: 'Citizen' });
