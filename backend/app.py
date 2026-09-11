@@ -9,15 +9,22 @@ app = Flask(__name__)
 
 # Configure CORS: Allow Vercel frontend URL(s) from environment variable, or allow regex matching *.vercel.app + localhost
 frontend_env = os.environ.get('FRONTEND_URL', '') or os.environ.get('ALLOWED_ORIGINS', '')
+explicit_allowed = [
+    'https://village-vision-ai-jet.vercel.app',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
+]
+
 if frontend_env and frontend_env.strip() != '*':
     allowed_origins = [orig.strip().rstrip('/') for orig in frontend_env.split(',') if orig.strip()]
-    # Ensure local development is always permitted alongside production frontend
-    for loc in ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173']:
+    for loc in explicit_allowed:
         if loc not in allowed_origins:
             allowed_origins.append(loc)
 else:
-    # Allow all Vercel preview/production deployments and local dev
     allowed_origins = [
+        'https://village-vision-ai-jet.vercel.app',
         r"^https:\/\/.*\.vercel\.app$",
         r"^http:\/\/localhost:\d+$",
         r"^http:\/\/127\.0\.0\.1:\d+$",

@@ -6,15 +6,14 @@
 const getApiBase = () => {
   // 1. Explicit Vite environment variable (configured in Vercel / .env)
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE;
-  if (envUrl && typeof envUrl === 'string') {
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
     const trimmed = envUrl.trim().replace(/\/+$/, '');
     return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
   }
 
-  // 2. Production build without explicit environment variable:
-  // Use relative '/api' which routes seamlessly on the same origin (Vercel serverless / rewrites)
+  // 2. Production build default: Deployed Render Backend API
   if (import.meta.env.PROD) {
-    return '/api';
+    return 'https://villagevision-ai-1.onrender.com/api';
   }
 
   // 3. Local Development fallback:
